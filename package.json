@@ -1,0 +1,9 @@
+{
+  "name": "dreamy-sprout",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd mobile && npm install && npx expo export --platform web --output-dir ../server/public",
+    "start": "cd server && node index.js",
+    "install-deps": "cd server && npm install"
+  }
+}
