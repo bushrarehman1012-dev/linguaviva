@@ -17,6 +17,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const PORT = process.env.PORT || 3001;
+let _ready  = false;
+let _error  = null;
+
+// Must be registered before static/SPA catch-all
+app.get('/health', (req, res) => {
+  if (_error) return res.status(503).json({ ok: false, error: _error });
+  res.json({ ok: true, ready: _ready, port: PORT });
+});
+
 app.use('/api/translate',  translateRoute);
 app.use('/api/phrases',    phrasesRoute);
 app.use('/api/vocabulary', vocabularyRoute);
@@ -27,17 +37,6 @@ app.get('/api/languages',  (req, res) => res.json(LANGUAGES));
 const publicDir = path.join(__dirname, 'public');
 app.use(express.static(publicDir));
 app.get('/{*path}', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
-
-const PORT = process.env.PORT || 3001;
-
-// Health check responds immediately — even before Supabase is ready
-let _ready  = false;
-let _error  = null;
-
-app.get('/health', (req, res) => {
-  if (_error) return res.status(503).json({ ok: false, error: _error });
-  res.json({ ok: true, ready: _ready, port: PORT });
-});
 
 async function start() {
   // Start HTTP server first so Railway health check never times out
