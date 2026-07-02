@@ -1,7 +1,7 @@
 node_modules/
 mobile/node_modules/
 server/node_modules/
-server/public/
 server/.env
 .env
 *.log
+# keep server/public tracked (hand-crafted HTML — not a build artifact)

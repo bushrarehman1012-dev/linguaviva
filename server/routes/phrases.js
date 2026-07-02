@@ -1,19 +1,19 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const NodeCache = require('node-cache');
+const { getWordListContext } = require('../data/wordlists');
 
 const router = express.Router();
 const cache = new NodeCache({ stdTTL: 3600 });
 
 const LANGUAGE_NAMES = {
-  ps: 'Pashto',
-  bsk: 'Burushaski',
-  scl: 'Shina',
-  hno: 'Hindko',
-  mvy: 'Kohistani (Indus Kohistani)',
+  ps: 'Pashto', bsk: 'Burushaski', scl: 'Shina', hno: 'Hindko',
+  mvy: 'Indus Kohistani', khw: 'Khowar (Chitrali)', bft: 'Balti',
+  wbl: 'Wakhi', trw: 'Torwali', kls: 'Kalasha',
 };
 
 const VALID_CATEGORIES = ['greetings', 'travel', 'food', 'emergency', 'numbers', 'family'];
+const LOW_RESOURCE = new Set(['bsk', 'scl', 'mvy', 'khw', 'bft', 'wbl', 'trw', 'kls']);
 
 router.get('/:langCode/:category', async (req, res) => {
   const { langCode, category } = req.params;
@@ -31,18 +31,33 @@ router.get('/:langCode/:category', async (req, res) => {
   if (!apiKey) return res.status(503).json({ error: 'AI service not configured' });
 
   const langName = LANGUAGE_NAMES[langCode];
+  const isLowResource = LOW_RESOURCE.has(langCode);
+
+  // Inject known vocabulary as anchor context
+  const categoryWords = {
+    greetings: 'hello goodbye yes no thank you please',
+    family: 'father mother brother sister child',
+    food: 'water bread milk meat food',
+    numbers: 'one two three four five',
+    travel: 'road mountain river house',
+    emergency: 'water fire good',
+  };
+  const wordContext = getWordListContext(langCode, categoryWords[category] || '');
+
+  const prompt =
+    `You are a linguistic expert in the regional languages of Pakistan's KPK and Gilgit-Baltistan.\n` +
+    (isLowResource
+      ? `IMPORTANT: ${langName} is a low-resource language. Use the verified vocabulary below as anchors. For unknown words, provide a phonetic transliteration rather than fabricating script.\n`
+      : '') +
+    wordContext +
+    `\nGenerate 8 common ${category} phrases in ${langName}.\n` +
+    `Return ONLY a valid JSON array. No markdown, no explanation.\n` +
+    `Each item: {"english":"...","translation":"${langName} in native script","transliteration":"Latin romanization","note":"short cultural note or empty string"}\n` +
+    `Example: [{"english":"Hello","translation":"سلام","transliteration":"Salaam","note":""}]`;
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
-    const prompt =
-      `You are a linguistic expert in the endangered languages of Pakistan (KPK and Gilgit-Baltistan). ` +
-      `Generate 8 common ${category} phrases in ${langName}. ` +
-      `Return ONLY a valid JSON array. No markdown, no explanation. ` +
-      `Each item must have: "english" (English phrase), "translation" (${langName} in native script), ` +
-      `"transliteration" (Latin romanization), "note" (short cultural note or empty string). ` +
-      `Example: [{"english":"Hello","translation":"سلام","transliteration":"Salaam","note":"Formal greeting"}]`;
 
     const result = await model.generateContent(prompt);
     const raw = result.response.text().trim();
@@ -56,7 +71,7 @@ router.get('/:langCode/:category', async (req, res) => {
     }
 
     cache.set(cacheKey, phrases);
-    return res.json({ phrases, source: 'ai' });
+    return res.json({ phrases, source: 'ai', lowResource: isLowResource });
   } catch (err) {
     console.error('Phrases error:', err.message);
     return res.status(500).json({ error: 'Failed to generate phrases' });

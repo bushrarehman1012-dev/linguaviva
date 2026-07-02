@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bašh — Regional Language Translator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F9FAFB; color: #111827; }
+.header { background: #fff; border-bottom: 1px solid #E5E7EB; padding: 14px 24px; display: flex; align-items: center; gap: 10px; }
+.logo { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #111827; }
+.logo span { color: #4F46E5; }
+.tagline { font-size: 12px; color: #9CA3AF; }
+.nav { display: flex; background: #fff; border-bottom: 1px solid #E5E7EB; overflow-x: auto; }
+.nav button { flex-shrink: 0; flex: 1; min-width: 80px; padding: 13px 8px; border: none; background: none; cursor: pointer; font-size: 13px; font-weight: 600; color: #9CA3AF; border-bottom: 3px solid transparent; white-space: nowrap; }
+.nav button.active { color: #4F46E5; border-bottom-color: #4F46E5; }
+.page { display: none; padding: 20px; max-width: 620px; margin: 0 auto; }
+.page.active { display: block; }
+.card { background: #fff; border-radius: 14px; padding: 18px; border: 1px solid #E5E7EB; margin-bottom: 14px; }
+.contrib-stat { flex:1; text-align:center; padding:14px 8px; border-right:1px solid #E5E7EB; }
+.contrib-stat:last-child { border-right:none; }
+.cs-num { font-size:22px; font-weight:800; color:#4F46E5; }
+.cs-label { font-size:11px; color:#9CA3AF; font-weight:600; margin-top:2px; }
+.cat-btn { padding:6px 12px; border-radius:20px; border:1.5px solid #E5E7EB; background:#fff; font-size:12px; font-weight:600; cursor:pointer; color:#6B7280; transition:all .15s; }
+.cat-btn.active { background:#4F46E5; color:#fff; border-color:#4F46E5; }
+.recent-row { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#F9FAFB; border-radius:8px; margin-bottom:6px; font-size:13px; }
+.recent-en  { color:#374151; font-weight:600; }
+.recent-bsk { color:#4F46E5; font-weight:700; }
+
+/* Translate */
+.lang-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+select { flex: 1; padding: 9px 12px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 14px; font-weight: 600; background: #fff; cursor: pointer; outline: none; min-width: 0; }
+select:focus { border-color: #4F46E5; }
+.swap-btn { width: 38px; height: 38px; background: #4F46E5; border: none; border-radius: 50%; cursor: pointer; font-size: 16px; color: #fff; flex-shrink: 0; }
+.input-area { position: relative; }
+textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: none; min-height: 100px; font-family: inherit; color: #111827; background: transparent; }
+.input-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.char-count { font-size: 12px; color: #D1D5DB; }
+.mic-btn { display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 20px; border: 1px solid #E5E7EB; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; color: #6B7280; }
+.mic-btn.listening { background: #FEE2E2; border-color: #FCA5A5; color: #DC2626; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.translate-btn { width: 100%; padding: 13px; background: #4F46E5; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 14px; }
+.translate-btn:hover { background: #4338CA; }
+.translate-btn:disabled { background: #A5B4FC; cursor: not-allowed; }
+.output { background: #EEF2FF; border-radius: 14px; padding: 18px; border: 1px solid #C7D2FE; min-height: 80px; }
+.output-text { font-size: 22px; font-weight: 500; color: #1E1B4B; line-height: 1.6; }
+.output-text.rtl { text-align: right; direction: rtl; }
+.output-meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+.badge-ai { background: #C7D2FE; color: #4F46E5; }
+.badge-warn { background: #FEF3C7; color: #92400E; }
+.badge-high { background: #D1FAE5; color: #065F46; }
+.badge-low { background: #FEE2E2; color: #991B1B; }
+.speak-btn { display: flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 20px; border: 1px solid #C7D2FE; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; color: #4F46E5; }
+.validate-area { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #F3F4F6; font-size: 13px; color: #374151; }
+.validate-area .back-tr { font-style: italic; color: #6B7280; margin-top: 4px; }
+.placeholder { color: #A5B4FC; font-style: italic; font-size: 15px; }
+.spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #C7D2FE; border-top-color: #4F46E5; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Languages */
+.section-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+.section-sub { font-size: 13px; color: #6B7280; margin-bottom: 14px; }
+.search-box { width: 100%; padding: 10px 14px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 14px; outline: none; margin-bottom: 14px; }
+.search-box:focus { border-color: #4F46E5; }
+.lang-card { background: #fff; border-radius: 12px; padding: 14px; border: 1px solid #E5E7EB; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+.lang-card:hover { border-color: #4F46E5; }
+.lang-name { font-size: 17px; font-weight: 700; }
+.lang-native { font-size: 13px; color: #6B7280; margin-top: 2px; }
+.lang-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.lang-region { font-size: 12px; color: #9CA3AF; }
+.status-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+.status-vulnerable { background: #FEF3C7; color: #92400E; }
+.status-endangered { background: #FEE2E2; color: #991B1B; }
+.status-critically_endangered { background: #EDE9FE; color: #5B21B6; }
+
+/* Phrases */
+.lang-select-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.lang-select-row label { font-size: 13px; font-weight: 600; color: #6B7280; white-space: nowrap; }
+.cat-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.cat-btn { padding: 6px 12px; border-radius: 20px; border: 1px solid #E5E7EB; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; color: #6B7280; }
+.cat-btn.active { background: #4F46E5; color: #fff; border-color: #4F46E5; }
+.phrase-card { background: #fff; border-radius: 12px; padding: 14px; border: 1px solid #F3F4F6; margin-bottom: 8px; }
+.phrase-en { font-size: 12px; color: #9CA3AF; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.phrase-tr { font-size: 20px; font-weight: 600; color: #111827; line-height: 1.4; }
+.phrase-tr.rtl { text-align: right; direction: rtl; }
+.phrase-lit { font-size: 13px; color: #9CA3AF; font-style: italic; margin-top: 4px; }
+.phrase-note { font-size: 12px; color: #92400E; margin-top: 6px; background: #FFFBEB; padding: 6px 8px; border-radius: 6px; }
+.phrase-speak { float: right; margin-top: -2px; background: none; border: none; cursor: pointer; font-size: 16px; opacity: 0.6; }
+.phrase-speak:hover { opacity: 1; }
+.loading-msg { text-align: center; padding: 40px; color: #6B7280; }
+.no-speech { background: #FEF3C7; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #92400E; margin-bottom: 12px; display: none; }
+
+/* Feedback */
+.feedback-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #E0E7FF; }
+.feedback-label { font-size: 12px; color: #9CA3AF; flex: 1; }
+.feedback-btn { padding: 5px 14px; border-radius: 20px; border: 1px solid #E5E7EB; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.15s; }
+.feedback-btn:hover { background: #F3F4F6; }
+.feedback-btn.good { background: #D1FAE5; border-color: #6EE7B7; color: #065F46; }
+.feedback-btn.bad  { background: #FEE2E2; border-color: #FCA5A5; color: #991B1B; }
+.correction-box { margin-top: 10px; display: none; }
+.correction-box textarea { width: 100%; border: 1px solid #E5E7EB; border-radius: 10px; padding: 10px; font-size: 14px; font-family: inherit; outline: none; resize: vertical; min-height: 60px; }
+.correction-box textarea:focus { border-color: #4F46E5; }
+.correction-box button { margin-top: 8px; padding: 7px 18px; background: #4F46E5; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.correction-box .thanks { font-size: 13px; color: #059669; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">Bašh<span>.</span></div>
+    <div class="tagline">Powered by Folk Whisperings</div>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="showPage('translate', this)">🌐 Translate</button>
+  <button onclick="showPage('languages', this)">📖 Languages</button>
+  <button onclick="showPage('phrases', this)">💬 Phrases</button>
+  <button onclick="showPage('contribute', this); initContribute()">✍️ Contribute</button>
+</div>
+
+<!-- TRANSLATE PAGE -->
+<div class="page active" id="page-translate">
+  <div id="no-speech-warn" class="no-speech">
+    Your browser doesn't support voice input. Use Chrome or Edge for audio features.
+  </div>
+
+  <div class="card">
+    <div class="lang-row">
+      <select id="source-lang" onchange="clearOutput()">
+        <option value="en">English</option>
+        <option value="ur">Urdu — اردو</option>
+        <option value="ps">Pashto</option>
+        <option value="bsk">Burushaski</option>
+        <option value="scl">Shina</option>
+        <option value="hno">Hindko</option>
+        <option value="mvy">Kohistani</option>
+        <option value="khw">Khowar</option>
+        <option value="bft">Balti</option>
+        <option value="wbl">Wakhi</option>
+        <option value="trw">Torwali</option>
+        <option value="kls">Kalasha</option>
+      </select>
+      <button class="swap-btn" onclick="swapLangs()">⇄</button>
+      <select id="target-lang" onchange="clearOutput()">
+        <option value="bsk">Burushaski</option>
+        <option value="ps">Pashto</option>
+        <option value="ur">Urdu — اردو</option>
+        <option value="en">English</option>
+        <option value="scl">Shina</option>
+        <option value="hno">Hindko</option>
+        <option value="mvy">Kohistani</option>
+        <option value="khw">Khowar</option>
+        <option value="bft">Balti</option>
+        <option value="wbl">Wakhi</option>
+        <option value="trw">Torwali</option>
+        <option value="kls">Kalasha</option>
+      </select>
+    </div>
+    <div class="input-area">
+      <textarea id="input-text" placeholder="Type or speak to translate… (Ctrl+Enter)" maxlength="500" oninput="updateCharCount(this)"></textarea>
+      <div class="input-controls">
+        <div class="char-count"><span id="char-count">0</span>/500</div>
+        <button class="mic-btn" id="mic-btn" onclick="toggleMic()">🎤 Speak</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="translate-btn" onclick="doTranslate()" id="translate-btn">Translate</button>
+
+  <div class="output" id="output-box">
+    <div class="placeholder">Translation will appear here</div>
+  </div>
+</div>
+
+<!-- LANGUAGES PAGE -->
+<div class="page" id="page-languages">
+  <div class="section-title">Languages</div>
+  <div class="section-sub">10 regional languages of KPK & Gilgit-Baltistan</div>
+  <input class="search-box" id="lang-search" placeholder="Search languages…" oninput="renderLanguages()" />
+  <div id="lang-list"></div>
+</div>
+
+<!-- CONTRIBUTE PAGE -->
+<div class="page" id="page-contribute">
+  <div class="section-title">Community Contributions</div>
+  <div class="section-sub" id="contrib-subtitle">Help build the Bašh lexicon — add verified translations</div>
+
+  <!-- Language picker -->
+  <div class="lang-select-row" style="margin-bottom:16px">
+    <label>Contributing to:</label>
+    <select id="contrib-lang" onchange="onContribLangChange()">
+      <option value="bsk">Burushaski</option>
+      <option value="ps">Pashto</option>
+      <option value="scl">Shina</option>
+      <option value="hno">Hindko</option>
+      <option value="mvy">Kohistani</option>
+      <option value="khw">Khowar</option>
+      <option value="bft">Balti</option>
+      <option value="wbl">Wakhi</option>
+      <option value="trw">Torwali</option>
+      <option value="kls">Kalasha</option>
+    </select>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="card" style="display:flex;gap:0;padding:0;overflow:hidden;margin-bottom:16px">
+    <div class="contrib-stat" id="cs-verified">
+      <div class="cs-num">—</div><div class="cs-label">Verified</div>
+    </div>
+    <div class="contrib-stat" id="cs-pending">
+      <div class="cs-num">—</div><div class="cs-label">Remaining</div>
+    </div>
+    <div class="contrib-stat" id="cs-submissions">
+      <div class="cs-num">—</div><div class="cs-label">Submissions</div>
+    </div>
+  </div>
+
+  <!-- Category filter -->
+  <div id="contrib-cats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
+
+  <!-- Main card -->
+  <div class="card" id="contrib-card" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span class="badge badge-high" id="contrib-pos-badge"></span>
+      <span style="font-size:12px;color:#9CA3AF" id="contrib-progress"></span>
+    </div>
+    <div id="contrib-english" style="font-size:28px;font-weight:800;color:#111827;margin:12px 0 4px"></div>
+    <div id="contrib-category" style="font-size:12px;color:#9CA3AF;margin-bottom:18px"></div>
+
+    <label id="contrib-translation-label" style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px">
+      Translation
+    </label>
+    <input id="contrib-bsk" type="text" placeholder="Type the translation…"
+      style="width:100%;padding:12px 14px;border:2px solid #E5E7EB;border-radius:10px;font-size:16px;outline:none;transition:border .15s"
+      onfocus="this.style.borderColor='#4F46E5'" onblur="this.style.borderColor='#E5E7EB'"
+      onkeydown="if(event.key==='Enter')submitContrib()">
+
+    <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin:12px 0 6px">
+      Transliteration / Roman spelling <span style="font-weight:400;color:#9CA3AF">(optional)</span>
+    </label>
+    <input id="contrib-roman" type="text" placeholder="e.g.  sil,  un amlo ba…"
+      style="width:100%;padding:10px 14px;border:2px solid #E5E7EB;border-radius:10px;font-size:14px;outline:none;transition:border .15s"
+      onfocus="this.style.borderColor='#4F46E5'" onblur="this.style.borderColor='#E5E7EB'">
+
+    <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin:12px 0 6px">
+      Notes <span style="font-weight:400;color:#9CA3AF">(dialect, grammar, usage — optional)</span>
+    </label>
+    <input id="contrib-notes" type="text" placeholder="e.g. used in Hunza dialect, noun class x…"
+      style="width:100%;padding:10px 14px;border:2px solid #E5E7EB;border-radius:10px;font-size:14px;outline:none;transition:border .15s"
+      onfocus="this.style.borderColor='#4F46E5'" onblur="this.style.borderColor='#E5E7EB'">
+
+    <div id="contrib-msg" style="min-height:28px;margin-top:10px;font-size:13px;color:#059669;font-weight:600"></div>
+
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button onclick="submitContrib()"
+        style="flex:2;padding:13px;background:#4F46E5;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">
+        Submit ✓
+      </button>
+      <button onclick="skipContrib()"
+        style="flex:1;padding:13px;background:#F3F4F6;color:#6B7280;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">
+        Skip →
+      </button>
+      <button onclick="dontKnowContrib()"
+        style="flex:1;padding:13px;background:#FEF3C7;color:#92400E;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">
+        Don't know
+      </button>
+    </div>
+  </div>
+
+  <div id="contrib-empty" class="card" style="display:none;text-align:center;padding:40px 20px;color:#6B7280">
+    <div style="font-size:40px;margin-bottom:10px">🎉</div>
+    <div style="font-weight:700;font-size:18px;color:#111827">All done in this category!</div>
+    <div style="margin-top:6px">Switch to another category to keep contributing.</div>
+  </div>
+
+  <!-- Recent verified translations -->
+  <div style="margin-top:24px">
+    <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Recently verified</div>
+    <div id="contrib-recent"></div>
+  </div>
+</div>
+
+<!-- PHRASES PAGE -->
+<div class="page" id="page-phrases">
+  <div class="section-title">Phrases</div>
+  <div class="lang-select-row">
+    <label>Language:</label>
+    <select id="phrases-lang" onchange="loadPhrases()">
+      <option value="ps">Pashto</option>
+      <option value="bsk">Burushaski</option>
+      <option value="scl">Shina</option>
+      <option value="hno">Hindko</option>
+      <option value="mvy">Kohistani</option>
+      <option value="khw">Khowar</option>
+      <option value="bft">Balti</option>
+      <option value="wbl">Wakhi</option>
+      <option value="trw">Torwali</option>
+      <option value="kls">Kalasha</option>
+    </select>
+  </div>
+  <div class="cat-row" id="cat-row"></div>
+  <div id="phrases-list"></div>
+</div>
+
+<script>
+// ─── Data ───────────────────────────────────────────────────────────────────
+const LANGUAGES = [
+  { code:'ps',  name:'Pashto',     nativeName:'پښتو',     region:'KPK, Pakistan & Afghanistan',      speakerCount:60000000, status:'vulnerable',           isRTL:true  },
+  { code:'bsk', name:'Burushaski', nativeName:'بروشسکی',  region:'Hunza, Nagar, Yasin — GB',         speakerCount:100000,   status:'endangered',           isRTL:true  },
+  { code:'scl', name:'Shina',      nativeName:'شینا',     region:'Gilgit-Baltistan & Kohistan',      speakerCount:800000,   status:'vulnerable',           isRTL:true  },
+  { code:'hno', name:'Hindko',     nativeName:'ہندکو',    region:'Hazara, Peshawar Valley — KPK',    speakerCount:5000000,  status:'vulnerable',           isRTL:true  },
+  { code:'mvy', name:'Kohistani',  nativeName:'کوہستانی', region:'Kohistan — KPK',                   speakerCount:200000,   status:'critically_endangered',isRTL:true  },
+  { code:'khw', name:'Khowar',     nativeName:'کھوار',    region:'Chitral — KPK',                    speakerCount:240000,   status:'vulnerable',           isRTL:true  },
+  { code:'bft', name:'Balti',      nativeName:'بلتی',     region:'Baltistan — Gilgit-Baltistan',     speakerCount:400000,   status:'vulnerable',           isRTL:true  },
+  { code:'wbl', name:'Wakhi',      nativeName:'وخی',      region:'Gojal, Upper Hunza — GB',          speakerCount:58000,    status:'endangered',           isRTL:false },
+  { code:'trw', name:'Torwali',    nativeName:'تروالی',   region:'Swat Kohistan — KPK',              speakerCount:80000,    status:'endangered',           isRTL:true  },
+  { code:'kls', name:'Kalasha',    nativeName:'کالاشہ',   region:'Kalash Valleys, Chitral — KPK',    speakerCount:5000,     status:'critically_endangered',isRTL:false },
+];
+
+const LOW_RESOURCE = new Set(['bsk','scl','mvy','khw','bft','wbl','trw','kls']);
+const CATEGORIES = ['greetings','travel','food','emergency','numbers','family'];
+let activeCategory = 'greetings';
+let recognition = null;
+let isListening = false;
+let lastTranslation = null;
+let lastTargetLang = null;
+let lastFeedbackPayload = null;
+
+// ─── Navigation ─────────────────────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'languages') renderLanguages();
+  if (name === 'phrases') initPhrases();
+}
+
+// ─── Translate ───────────────────────────────────────────────────────────────
+function updateCharCount(el) { document.getElementById('char-count').textContent = el.value.length; }
+function clearOutput() {
+  document.getElementById('output-box').innerHTML = '<div class="placeholder">Translation will appear here</div>';
+  lastTranslation = null; lastTargetLang = null; lastFeedbackPayload = null;
+}
+function swapLangs() {
+  const s = document.getElementById('source-lang'), t = document.getElementById('target-lang');
+  [s.value, t.value] = [t.value, s.value];
+  clearOutput();
+}
+
+async function doTranslate() {
+  const text = document.getElementById('input-text').value.trim();
+  if (!text) return;
+  const sourceLang = document.getElementById('source-lang').value;
+  const targetLang = document.getElementById('target-lang').value;
+  const btn = document.getElementById('translate-btn');
+  const box = document.getElementById('output-box');
+
+  btn.disabled = true;
+  box.innerHTML = '<div style="text-align:center;padding:24px"><div class="spinner"></div></div>';
+
+  try {
+    const res = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, sourceLang, targetLang }),
+    });
+    const data = await res.json();
+    const lang = LANGUAGES.find(l => l.code === targetLang);
+    const isRTL = lang ? lang.isRTL : false;
+    const isLowRes = data.lowResource;
+
+    if (data.translation || data.transliteration) {
+      lastTranslation = data.transliteration || data.translation; // TTS speaks transliteration
+      lastTargetLang = targetLang;
+      lastFeedbackPayload = { text, sourceLang, targetLang, translation: data.translation, transliteration: data.transliteration };
+
+      const nativeScript = data.translation || '';
+      const romanization = data.transliteration || '';
+
+      // For low-resource languages always show both; for Pashto show native + transliteration
+      const showBoth = romanization && romanization.toLowerCase() !== nativeScript.toLowerCase();
+
+      box.innerHTML = `
+        <div class="output-text ${isRTL ? 'rtl' : ''}">${escHtml(nativeScript)}</div>
+        ${showBoth ? `<div style="font-size:15px;color:#6B7280;margin-top:6px;font-style:italic">${escHtml(romanization)}</div>` : ''}
+        <div class="output-meta">
+          ${data.source === 'correction' ? '<span class="badge badge-high">✓ Community correction</span>' : data.source === 'verified' ? '<span class="badge badge-high">✓ Dictionary</span>' : data.source === 'google' ? '<span class="badge badge-high">via Google</span>' : '<span class="badge badge-ai">via AI</span>'}
+          ${isLowRes && data.source !== 'verified' ? '<span class="badge badge-warn">⚠ Low-resource</span>' : ''}
+          <button class="speak-btn" onclick="speakTranslation()">🔊 Listen</button>
+          ${data.source !== 'verified' ? `<button class="speak-btn" onclick="validateTranslation('${escHtml(text)}', '${targetLang}')">✓ Verify</button>` : ''}
+        </div>
+        <div id="validate-result"></div>
+        <div class="feedback-row">
+          <span class="feedback-label">Was this translation correct?</span>
+          <button class="feedback-btn" id="fb-good" onclick="sendFeedback('good')">👍 Yes</button>
+          <button class="feedback-btn" id="fb-bad"  onclick="sendFeedback('bad')">👎 No</button>
+        </div>
+        <div class="correction-box" id="correction-box">
+          <textarea id="correction-text" placeholder="Enter the correct translation here…"></textarea>
+          <button onclick="submitCorrection()">Submit correction</button>
+        </div>
+        <div id="feedback-thanks"></div>
+      `;
+    } else {
+      box.innerHTML = '<div class="placeholder">No translation found</div>';
+    }
+  } catch (e) {
+    box.innerHTML = '<div style="color:#DC2626;padding:8px">Error: Could not reach server. Is it running?</div>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('input-text').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) doTranslate();
+});
+
+// ─── Back-translation Validation (Task 4) ───────────────────────────────────
+async function validateTranslation(originalText, targetLang) {
+  if (!lastTranslation) return;
+  const vDiv = document.getElementById('validate-result');
+  if (!vDiv) return;
+  vDiv.innerHTML = '<div style="margin-top:10px;font-size:13px;color:#6B7280"><div class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle"></div>Verifying against back-translation…</div>';
+
+  try {
+    const res = await fetch('/api/translate/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: originalText, translation: lastTranslation, targetLang }),
+    });
+    const data = await res.json();
+    const colorMap = { high: 'badge-high', medium: 'badge-warn', low: 'badge-low' };
+    const badgeClass = colorMap[data.accuracy] || 'badge-warn';
+    vDiv.innerHTML = `
+      <div class="validate-area">
+        <div><span class="badge ${badgeClass}">Accuracy: ${data.accuracy}</span> ${escHtml(data.notes || '')}</div>
+        ${data.backTranslation ? `<div class="back-tr">Back-translation: "${escHtml(data.backTranslation)}"</div>` : ''}
+      </div>`;
+  } catch {
+    vDiv.innerHTML = '<div class="validate-area" style="color:#DC2626">Verification failed</div>';
+  }
+}
+
+// ─── Audio: Speech-to-Text Input (Task 2) ────────────────────────────────────
+function setupSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('no-speech-warn').style.display = 'block';
+    document.getElementById('mic-btn').style.display = 'none';
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('input-text').value = transcript;
+    updateCharCount(document.getElementById('input-text'));
+  };
+  recognition.onend = () => {
+    isListening = false;
+    const btn = document.getElementById('mic-btn');
+    btn.classList.remove('listening');
+    btn.textContent = '🎤 Speak';
+    // Auto-translate after voice input settles
+    const text = document.getElementById('input-text').value.trim();
+    if (text) doTranslate();
+  };
+  recognition.onerror = (e) => {
+    isListening = false;
+    document.getElementById('mic-btn').classList.remove('listening');
+    document.getElementById('mic-btn').textContent = '🎤 Speak';
+    if (e.error !== 'no-speech') console.warn('Speech error:', e.error);
+  };
+}
+
+function toggleMic() {
+  if (!recognition) {
+    document.getElementById('no-speech-warn').style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('mic-btn');
+  if (isListening) {
+    recognition.stop();
+  } else {
+    isListening = true;
+    btn.classList.add('listening');
+    btn.textContent = '⏹ Stop';
+    document.getElementById('input-text').value = '';
+    clearOutput();
+    recognition.start();
+  }
+}
+
+// ─── Audio: Text-to-Speech Output (Task 2) ───────────────────────────────────
+function speakText(text) {
+  if (!text || !window.speechSynthesis) {
+    if (!window.speechSynthesis) alert('Text-to-speech is not supported in this browser. Try Chrome or Edge.');
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  // Always use English voice — it's universally available and can pronounce Latin transliterations
+  utter.lang = 'en-US';
+  utter.rate = 0.78; // slightly slow for clarity
+  const voices = window.speechSynthesis.getVoices();
+  const enVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en'));
+  if (enVoice) utter.voice = enVoice;
+  window.speechSynthesis.speak(utter);
+}
+
+function speakTranslation() {
+  speakText(lastTranslation);
+}
+
+function speakPhrase(text) {
+  speakText(text);
+}
+
+// ─── Languages Page ──────────────────────────────────────────────────────────
+function formatSpeakers(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M speakers';
+  if (n >= 1e3) return Math.round(n/1e3) + 'K speakers';
+  return n + ' speakers';
+}
+
+function renderLanguages() {
+  const q = (document.getElementById('lang-search')?.value || '').toLowerCase();
+  const filtered = LANGUAGES.filter(l =>
+    l.name.toLowerCase().includes(q) || l.region.toLowerCase().includes(q) || l.nativeName.includes(q)
+  );
+  document.getElementById('lang-list').innerHTML = filtered.map(l => `
+    <div class="lang-card" onclick="goTranslate('${l.code}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="lang-name">${l.name}</div>
+          <div class="lang-native">${l.nativeName}</div>
+        </div>
+        <span class="status-badge status-${l.status}">${l.status.replace(/_/g,' ')}</span>
+      </div>
+      <div class="lang-meta">
+        <span class="lang-region">${l.region}</span>
+        <span style="font-size:12px;color:#9CA3AF">${formatSpeakers(l.speakerCount)}</span>
+      </div>
+      ${LOW_RESOURCE.has(l.code) ? '<div style="font-size:11px;color:#9CA3AF;margin-top:6px">⚠ Low-resource — AI uses verified vocabulary anchors</div>' : ''}
+    </div>
+  `).join('');
+}
+
+function goTranslate(code) {
+  document.getElementById('target-lang').value = code;
+  showPage('translate', document.querySelector('.nav button'));
+}
+
+// ─── Phrases Page ────────────────────────────────────────────────────────────
+function initPhrases() {
+  document.getElementById('cat-row').innerHTML = CATEGORIES.map(c =>
+    `<button class="cat-btn ${c === activeCategory ? 'active' : ''}" onclick="setCategory('${c}',this)">${c.charAt(0).toUpperCase()+c.slice(1)}</button>`
+  ).join('');
+  loadPhrases();
+}
+
+function setCategory(cat, btn) {
+  activeCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadPhrases();
+}
+
+async function loadPhrases() {
+  const langCode = document.getElementById('phrases-lang').value;
+  const lang = LANGUAGES.find(l => l.code === langCode);
+  const list = document.getElementById('phrases-list');
+  list.innerHTML = '<div class="loading-msg"><div class="spinner"></div><p style="margin-top:12px;font-size:13px">Generating with AI…</p></div>';
+
+  try {
+    const res = await fetch(`/api/phrases/${langCode}/${activeCategory}`);
+    const data = await res.json();
+    const isRTL = lang ? lang.isRTL : false;
+
+    list.innerHTML = (data.lowResource
+      ? '<div style="background:#FEF3C7;border-radius:10px;padding:10px 14px;font-size:13px;color:#92400E;margin-bottom:10px">⚠ Low-resource language — phrases use verified vocabulary anchors where possible</div>'
+      : '') +
+      data.phrases.map(p => `
+        <div class="phrase-card">
+          <button class="phrase-speak" onclick="speakText('${escHtml(p.transliteration || p.english)}')">🔊</button>
+          <div class="phrase-en">${escHtml(p.english)}</div>
+          <div class="phrase-tr ${isRTL ? 'rtl' : ''}">${escHtml(p.translation)}</div>
+          ${p.transliteration ? `<div class="phrase-lit">${escHtml(p.transliteration)}</div>` : ''}
+          ${p.note ? `<div class="phrase-note">💡 ${escHtml(p.note)}</div>` : ''}
+        </div>
+      `).join('');
+  } catch {
+    list.innerHTML = '<div class="loading-msg" style="color:#DC2626">Failed to load phrases. Is the server running?</div>';
+  }
+}
+
+// ─── Feedback ────────────────────────────────────────────────────────────────
+async function sendFeedback(verdict) {
+  if (!lastFeedbackPayload) return;
+  const goodBtn = document.getElementById('fb-good');
+  const badBtn  = document.getElementById('fb-bad');
+  const corrBox = document.getElementById('correction-box');
+  const thanks  = document.getElementById('feedback-thanks');
+
+  if (verdict === 'good') {
+    if (goodBtn) goodBtn.classList.add('good');
+    if (badBtn)  badBtn.classList.remove('bad');
+    if (corrBox) corrBox.style.display = 'none';
+    await postFeedback({ ...lastFeedbackPayload, verdict });
+    if (thanks) thanks.innerHTML = '<div class="correction-box"><span class="thanks">Thanks for confirming!</span></div>';
+  } else {
+    if (badBtn)  badBtn.classList.add('bad');
+    if (goodBtn) goodBtn.classList.remove('good');
+    if (corrBox) corrBox.style.display = 'block';
+  }
+}
+
+async function submitCorrection() {
+  if (!lastFeedbackPayload) return;
+  const correction = (document.getElementById('correction-text')?.value || '').trim();
+  const thanks = document.getElementById('feedback-thanks');
+  await postFeedback({ ...lastFeedbackPayload, verdict: 'bad', correction });
+  const corrBox = document.getElementById('correction-box');
+  if (corrBox) corrBox.style.display = 'none';
+  if (thanks) thanks.innerHTML = '<div class="correction-box"><span class="thanks">Thank you — your correction has been saved and will improve future translations!</span></div>';
+}
+
+async function postFeedback(payload) {
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) { console.warn('Feedback post failed:', e); }
+}
+
+// ─── Utils ───────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Contribute ──────────────────────────────────────────────────────────────
+let _contribQueue   = [];
+let _contribIdx     = 0;
+let _contribCat     = 'all';
+let _contribLang    = 'bsk';
+let _contribInited  = false;
+
+function getContribLangName() {
+  const lang = LANGUAGES.find(l => l.code === _contribLang);
+  return lang ? lang.name : _contribLang;
+}
+
+function onContribLangChange() {
+  _contribLang = document.getElementById('contrib-lang').value;
+  _contribCat  = 'all';
+  _contribIdx  = 0;
+  _contribInited = false; // force full reload
+  initContribute();
+}
+
+async function initContribute() {
+  if (_contribInited) { refreshContribStats(); return; }
+  _contribInited = true;
+  const name = getContribLangName();
+  document.getElementById('contrib-subtitle').textContent =
+    `Help build the Bašh lexicon — add verified ${name} translations`;
+  document.getElementById('contrib-translation-label').textContent =
+    `${name} translation`;
+  document.getElementById('contrib-bsk').placeholder =
+    `Type the ${name} word or phrase…`;
+  await refreshContribStats();
+  await loadContribCategories();
+  await loadContribQueue();
+}
+
+async function refreshContribStats() {
+  try {
+    const r = await fetch(`/api/contribute/stats?targetLang=${_contribLang}`);
+    const d = await r.json();
+    document.getElementById('cs-verified').querySelector('.cs-num').textContent    = d.verified;
+    document.getElementById('cs-pending').querySelector('.cs-num').textContent     = d.pending;
+    document.getElementById('cs-submissions').querySelector('.cs-num').textContent = d.total_submissions;
+  } catch {}
+}
+
+async function loadContribCategories() {
+  try {
+    const r = await fetch(`/api/contribute/categories?targetLang=${_contribLang}`);
+    const cats = await r.json();
+    const container = document.getElementById('contrib-cats');
+    container.innerHTML = '';
+
+    const all = Object.values(cats).reduce((s,c) => s + c.pending, 0);
+    container.innerHTML += `<button class="cat-btn active" onclick="selectCat('all',this)">All (${all})</button>`;
+
+    const sorted = Object.entries(cats).sort((a,b) => b[1].pending - a[1].pending);
+    for (const [cat, info] of sorted) {
+      if (info.pending === 0) continue;
+      const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+      container.innerHTML += `<button class="cat-btn" onclick="selectCat('${cat}',this)">${label} (${info.pending})</button>`;
+    }
+  } catch {}
+}
+
+async function selectCat(cat, btn) {
+  _contribCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _contribIdx = 0;
+  await loadContribQueue();
+}
+
+async function loadContribQueue() {
+  try {
+    const url = `/api/contribute/queue?targetLang=${_contribLang}&limit=30${_contribCat !== 'all' ? '&category=' + _contribCat : ''}`;
+    const r   = await fetch(url);
+    const d   = await r.json();
+    _contribQueue = d.entries;
+    _contribIdx   = 0;
+    showContribCard();
+  } catch {}
+}
+
+function showContribCard() {
+  const card  = document.getElementById('contrib-card');
+  const empty = document.getElementById('contrib-empty');
+
+  if (_contribQueue.length === 0 || _contribIdx >= _contribQueue.length) {
+    card.style.display  = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  card.style.display  = 'block';
+
+  const entry = _contribQueue[_contribIdx];
+  document.getElementById('contrib-english').textContent  = entry.english;
+  document.getElementById('contrib-pos-badge').textContent = entry.pos || entry.type || 'phrase';
+  document.getElementById('contrib-category').textContent  = (entry.category || '') + (entry.contributions ? `  ·  ${entry.contributions} submission${entry.contributions !== 1 ? 's' : ''} so far` : '');
+  document.getElementById('contrib-progress').textContent  = `${_contribIdx + 1} / ${_contribQueue.length}`;
+  document.getElementById('contrib-bsk').value   = '';
+  document.getElementById('contrib-roman').value = '';
+  document.getElementById('contrib-notes').value = '';
+  document.getElementById('contrib-msg').textContent = '';
+  document.getElementById('contrib-bsk').focus();
+}
+
+async function submitContrib() {
+  const entry = _contribQueue[_contribIdx];
+  if (!entry) return;
+  const text  = document.getElementById('contrib-bsk').value.trim();
+  const roman = document.getElementById('contrib-roman').value.trim();
+  const notes = document.getElementById('contrib-notes').value.trim();
+  const msg   = document.getElementById('contrib-msg');
+
+  if (!text) { msg.style.color='#DC2626'; msg.textContent='Please enter a translation first.'; return; }
+
+  try {
+    const r = await fetch('/api/contribute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryId: entry.id, targetLang: _contribLang, text, roman, notes }),
+    });
+    const d = await r.json();
+    msg.style.color = d.promoted ? '#059669' : '#6B7280';
+    msg.textContent = d.message;
+
+    if (d.promoted) {
+      addRecentRow(entry.english, text);
+      await refreshContribStats();
+    }
+
+    setTimeout(() => {
+      _contribIdx++;
+      showContribCard();
+    }, d.promoted ? 1400 : 900);
+  } catch {
+    msg.style.color = '#DC2626';
+    msg.textContent = 'Could not submit — check your connection.';
+  }
+}
+
+function skipContrib() {
+  _contribIdx++;
+  if (_contribIdx >= _contribQueue.length) _contribIdx = 0;
+  showContribCard();
+}
+
+function dontKnowContrib() {
+  // Move to end of queue silently
+  const skipped = _contribQueue.splice(_contribIdx, 1);
+  _contribQueue.push(...skipped);
+  showContribCard();
+}
+
+function addRecentRow(english, translation) {
+  const container = document.getElementById('contrib-recent');
+  const row = document.createElement('div');
+  row.className = 'recent-row';
+  const langName = getContribLangName();
+  row.innerHTML = `<span class="recent-en">${english}</span><span class="recent-bsk" title="${langName}">${translation}</span>`;
+  container.insertBefore(row, container.firstChild);
+  if (container.children.length > 8) container.lastChild.remove();
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+setupSpeechRecognition();
+// Load voices list (Chrome needs this trigger)
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+</script>
+</body>
+</html>

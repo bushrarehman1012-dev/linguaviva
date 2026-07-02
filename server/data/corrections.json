@@ -1,0 +1,692 @@
+{
+  "en|bsk|go away": {
+    "translation": "Ni",
+    "transliteration": "Ni",
+    "source": "correction"
+  },
+  "en|bsk|hello": {
+    "translation": "salaam",
+    "transliteration": "salaam",
+    "source": "correction"
+  },
+  "en|bsk|come here": {
+    "translation": "xu kholer",
+    "transliteration": "xu kholer",
+    "source": "correction"
+  },
+  "en|bsk|bring me water": {
+    "translation": "ja gane sil dusu",
+    "transliteration": "ja gane sil dusu",
+    "source": "correction"
+  },
+  "en|bsk|i need water": {
+    "translation": "ja ar sil awaji",
+    "transliteration": "ja ar sil awaji",
+    "source": "correction"
+  },
+  "en|bsk|where are you going?": {
+    "translation": "un amlar nichaa",
+    "transliteration": "un amlar nichaa",
+    "source": "correction"
+  },
+  "en|bsk|where is it?": {
+    "translation": "amlo bila",
+    "transliteration": "amlo bila",
+    "source": "correction"
+  },
+  "en|bsk|where": {
+    "translation": "amlo",
+    "transliteration": "amlo",
+    "source": "correction"
+  },
+  "en|bsk|what is your name (formal)": {
+    "translation": "uny gueek besan bila",
+    "transliteration": "uny gueek besan bila",
+    "source": "correction"
+  },
+  "en|bsk|my name is": {
+    "translation": "ja aik",
+    "transliteration": "ja aik",
+    "source": "correction"
+  },
+  "en|bsk|nice to meet you": {
+    "translation": "un nukuixh khushi manimi",
+    "transliteration": "un nukuixh khushi manimi",
+    "source": "correction"
+  },
+  "en|bsk|how are you": {
+    "translation": "be hal bila",
+    "transliteration": "be hal bila",
+    "source": "correction"
+  },
+  "en|bsk|i am fine": {
+    "translation": "je shua ba",
+    "transliteration": "je shua ba",
+    "source": "correction"
+  },
+  "en|bsk|i am not fine": {
+    "translation": "je shua apa",
+    "transliteration": "je shua apa",
+    "source": "correction"
+  },
+  "en|bsk|i love you": {
+    "translation": "ja uny ka shul echaba",
+    "transliteration": "ja uny ka shul echaba",
+    "source": "correction"
+  },
+  "en|bsk|i miss you": {
+    "translation": "ja uny aski duwalila",
+    "transliteration": "ja uny aski duwalila",
+    "source": "correction"
+  },
+  "en|bsk|where are you": {
+    "translation": "un amlo ba",
+    "transliteration": "un amlo ba",
+    "source": "correction"
+  },
+  "en|bsk|where are you from": {
+    "translation": "un amlum ba",
+    "transliteration": "un amlum ba",
+    "source": "correction"
+  },
+  "en|bsk|where do you live": {
+    "translation": "un amlo hurusha",
+    "transliteration": "un amlo hurusha",
+    "source": "correction"
+  },
+  "en|bsk|where is the bathroom": {
+    "translation": "bathroom amlo bila",
+    "transliteration": "bathroom amlo bila",
+    "source": "correction"
+  },
+  "en|bsk|where is the hospital": {
+    "translation": "hospital amlo bila",
+    "transliteration": "hospital amlo bila",
+    "source": "correction"
+  },
+  "en|bsk|where is the hotel": {
+    "translation": "hotel amlo bila",
+    "transliteration": "hotel amlo bila",
+    "source": "correction"
+  },
+  "en|bsk|where is the market": {
+    "translation": "dukaanin amlo bixa",
+    "transliteration": "dukaanin amlo bixa",
+    "source": "correction"
+  },
+  "en|bsk|where is the mosque": {
+    "translation": "majit amlo bila",
+    "transliteration": "majit amlo bila",
+    "source": "correction"
+  },
+  "en|bsk|what is this": {
+    "translation": "guty besan bila",
+    "transliteration": "guty besan bila",
+    "source": "correction"
+  },
+  "en|bsk|what is that": {
+    "translation": "itey besan bila",
+    "transliteration": "itey besan bila",
+    "source": "correction"
+  },
+  "en|bsk|what time is it": {
+    "translation": "besan khaen manila",
+    "transliteration": "besan khaen manila",
+    "source": "correction"
+  },
+  "en|bsk|what is your job": {
+    "translation": "uny duro besan bila",
+    "transliteration": "uny duro besan bila",
+    "source": "correction"
+  },
+  "en|bsk|what happened": {
+    "translation": "be manimi",
+    "transliteration": "be manimi",
+    "source": "correction"
+  },
+  "en|bsk|what do you want": {
+    "translation": "besan awaji unar",
+    "transliteration": "besan awaji unar",
+    "source": "correction"
+  },
+  "en|bsk|how much": {
+    "translation": "berum",
+    "transliteration": "berum",
+    "source": "correction"
+  },
+  "en|bsk|how many": {
+    "translation": "beruman",
+    "transliteration": "beruman",
+    "source": "correction"
+  },
+  "en|bsk|how far": {
+    "translation": "berum mathan",
+    "transliteration": "berum mathan",
+    "source": "correction"
+  },
+  "en|bsk|how long": {
+    "translation": "berum uyum",
+    "transliteration": "berum uyum",
+    "source": "correction"
+  },
+  "en|bsk|how do you say": {
+    "translation": "uny belaty sibaa",
+    "transliteration": "uny belaty sibaa",
+    "source": "correction"
+  },
+  "en|bsk|i don't understand": {
+    "translation": "asulo apalimi",
+    "transliteration": "asulo apalimi",
+    "source": "correction"
+  },
+  "en|bsk|i don't know": {
+    "translation": "jaar lail api",
+    "transliteration": "jaar lail api",
+    "source": "correction"
+  },
+  "en|bsk|do you understand": {
+    "translation": "goslo balimia",
+    "transliteration": "goslo balimia",
+    "source": "correction"
+  },
+  "en|bsk|do you speak english": {
+    "translation": "uny english gharicha",
+    "transliteration": "uny english gharicha",
+    "source": "correction"
+  },
+  "en|bsk|i don't speak burushaski": {
+    "translation": "je burushaski gharas ayamayaba",
+    "transliteration": "je burushaski gharas ayamayaba",
+    "source": "correction"
+  },
+  "en|bsk|i am learning burushaski": {
+    "translation": "ja burushaski gharas heyaba",
+    "transliteration": "ja burushaski gharas heyaba",
+    "source": "correction"
+  },
+  "en|bsk|speak slowly": {
+    "translation": "thala gharay",
+    "transliteration": "thala gharay",
+    "source": "correction"
+  },
+  "en|bsk|speak slowly please": {
+    "translation": "thala gharay",
+    "transliteration": "thala gharay",
+    "source": "correction"
+  },
+  "en|bsk|please repeat": {
+    "translation": "hikkeh",
+    "transliteration": "hikkeh",
+    "source": "correction"
+  },
+  "en|bsk|can you write it": {
+    "translation": "un girminas gomayba?",
+    "transliteration": "un girminas gomayba?",
+    "source": "correction"
+  },
+  "en|bsk|thank you": {
+    "translation": "Juu gor",
+    "transliteration": "Juu gor",
+    "source": "correction"
+  },
+  "en|bsk|thank you very much": {
+    "translation": "butan juu gor",
+    "transliteration": "butan juu gor",
+    "source": "correction"
+  },
+  "en|bsk|you are welcome": {
+    "translation": "bes k masla api",
+    "transliteration": "bes k masla api",
+    "source": "correction"
+  },
+  "en|bsk|sorry": {
+    "translation": "bakhshish ati",
+    "transliteration": "bakhshish ati",
+    "source": "correction"
+  },
+  "en|bsk|no problem": {
+    "translation": "masla api",
+    "transliteration": "masla api",
+    "source": "correction"
+  },
+  "en|bsk|it's okay": {
+    "translation": "shua bila",
+    "transliteration": "shua bila",
+    "source": "correction"
+  },
+  "en|bsk|call the police": {
+    "translation": "police r qaw eti",
+    "transliteration": "police r qaw eti",
+    "source": "correction"
+  },
+  "en|bsk|i need a doctor": {
+    "translation": "jar doctor awaji",
+    "transliteration": "jar doctor awaji",
+    "source": "correction"
+  },
+  "en|bsk|i am sick": {
+    "translation": "je bemar ba",
+    "transliteration": "je bemar ba",
+    "source": "correction"
+  },
+  "en|bsk|call an ambulance": {
+    "translation": "ambulance r qaw eti",
+    "transliteration": "ambulance r qaw eti",
+    "source": "correction"
+  },
+  "en|bsk|there is a fire": {
+    "translation": "etalay phuan bila",
+    "transliteration": "etalay phuan bila",
+    "source": "correction"
+  },
+  "en|bsk|i want water": {
+    "translation": "jar sil awaji",
+    "transliteration": "jar sil awaji",
+    "source": "correction"
+  },
+  "en|bsk|i am hungry": {
+    "translation": "je chaminay ba",
+    "transliteration": "je chaminay ba",
+    "source": "correction"
+  },
+  "en|bsk|i am thirsty": {
+    "translation": "ja buk yuebi",
+    "transliteration": "ja buk yuebi",
+    "source": "correction"
+  },
+  "en|bsk|i am tired": {
+    "translation": "je awaraba",
+    "transliteration": "je awaraba",
+    "source": "correction"
+  },
+  "en|bsk|i am happy": {
+    "translation": "je khush ba",
+    "transliteration": "je khush ba",
+    "source": "correction"
+  },
+  "en|bsk|i am sad": {
+    "translation": "je tang ba",
+    "transliteration": "je tang ba",
+    "source": "correction"
+  },
+  "en|bsk|i am cold": {
+    "translation": "je thatinay amanaba",
+    "transliteration": "je thatinay amanaba",
+    "source": "correction"
+  },
+  "en|bsk|i am hot": {
+    "translation": "je garurum amanaba",
+    "transliteration": "je garurum amanaba",
+    "source": "correction"
+  },
+  "en|bsk|i am here": {
+    "translation": "je kholy ba",
+    "transliteration": "je kholy ba",
+    "source": "correction"
+  },
+  "en|bsk|i am ready": {
+    "translation": "je tayyar ba",
+    "transliteration": "je tayyar ba",
+    "source": "correction"
+  },
+  "en|bsk|how much does this cost": {
+    "translation": "gusey berumar bi",
+    "transliteration": "gusey berumar bi",
+    "source": "correction"
+  },
+  "en|bsk|i want to buy this": {
+    "translation": "ja gusey yanas bila",
+    "transliteration": "ja gusey yanas bila",
+    "source": "correction"
+  },
+  "en|bsk|that is expensive": {
+    "translation": "ete mehanga bila",
+    "transliteration": "ete mehanga bila",
+    "source": "correction"
+  },
+  "en|bsk|that is cheap": {
+    "translation": "ete sasta bila",
+    "transliteration": "ete sasta bila",
+    "source": "correction"
+  },
+  "en|bsk|give me that": {
+    "translation": "esay jaar jo",
+    "transliteration": "esay jaar jo",
+    "source": "correction"
+  },
+  "en|bsk|give me water": {
+    "translation": "sil achi",
+    "transliteration": "sil achi",
+    "source": "correction"
+  },
+  "en|bsk|i want food": {
+    "translation": "jar shapik awaji",
+    "transliteration": "jar shapik awaji",
+    "source": "correction"
+  },
+  "en|bsk|the bill please": {
+    "translation": "bill achen",
+    "transliteration": "bill achen",
+    "source": "correction"
+  },
+  "en|bsk|the food is delicious": {
+    "translation": "shapik but uyam bi",
+    "transliteration": "shapik but uyam bi",
+    "source": "correction"
+  },
+  "en|bsk|i am vegetarian": {
+    "translation": "ja khali hoi sheyas enay ba",
+    "transliteration": "ja khali hoi sheyas enay ba",
+    "source": "correction"
+  },
+  "en|bsk|i am full": {
+    "translation": "ja pura amanam",
+    "transliteration": "ja pura amanam",
+    "source": "correction"
+  },
+  "en|bsk|i want tea": {
+    "translation": "jar chai awaji",
+    "transliteration": "jar chai awaji",
+    "source": "correction"
+  },
+  "en|bsk|i want bread": {
+    "translation": "jar phitti awaji",
+    "transliteration": "jar phitti awaji",
+    "source": "correction"
+  },
+  "en|bsk|go straight": {
+    "translation": "sida ni",
+    "transliteration": "sida ni",
+    "source": "correction"
+  },
+  "en|bsk|turn left": {
+    "translation": "gawpa ni",
+    "transliteration": "gawpa ni",
+    "source": "correction"
+  },
+  "en|bsk|turn right": {
+    "translation": "dowpa ni",
+    "transliteration": "dowpa ni",
+    "source": "correction"
+  },
+  "en|bsk|stop here": {
+    "translation": "kholey xhat manay",
+    "transliteration": "kholey xhat manay",
+    "source": "correction"
+  },
+  "en|bsk|wait here": {
+    "translation": "kholey xhaat manay",
+    "transliteration": "kholey xhaat manay",
+    "source": "correction"
+  },
+  "en|bsk|yes it is": {
+    "translation": "awa etay bila",
+    "transliteration": "awa etay bila",
+    "source": "correction"
+  },
+  "en|bsk|no it is not": {
+    "translation": "beya etay api",
+    "transliteration": "beya etay api",
+    "source": "correction"
+  },
+  "en|bsk|i think so": {
+    "translation": "awa ja k etay samba bila",
+    "transliteration": "awa ja k etay samba bila",
+    "source": "correction"
+  },
+  "en|bsk|i don't think so": {
+    "translation": "beya ja etay samba aapi",
+    "transliteration": "beya ja etay samba aapi",
+    "source": "correction"
+  },
+  "en|bsk|maybe": {
+    "translation": "ama awa",
+    "transliteration": "ama awa",
+    "source": "correction"
+  },
+  "en|bsk|i am a student": {
+    "translation": "je shagiro an ba",
+    "transliteration": "je shagiro an ba",
+    "source": "correction"
+  },
+  "en|bsk|i am a teacher": {
+    "translation": "je ustad an ba",
+    "transliteration": "je ustad an ba",
+    "source": "correction"
+  },
+  "en|bsk|i am from pakistan": {
+    "translation": "je pakistan xum ba",
+    "transliteration": "je pakistan xum ba",
+    "source": "correction"
+  },
+  "en|bsk|i live in": {
+    "translation": "je hurushaba",
+    "transliteration": "je hurushaba",
+    "source": "correction"
+  },
+  "en|bsk|i work in": {
+    "translation": "ja duro echaba",
+    "transliteration": "ja duro echaba",
+    "source": "correction"
+  },
+  "en|bsk|how old are you": {
+    "translation": "un berum saal e ba",
+    "transliteration": "un berum saal e ba",
+    "source": "correction"
+  },
+  "en|bsk|i am years old": {
+    "translation": "je akhurum saal e ba",
+    "transliteration": "je akhurum saal e ba",
+    "source": "correction"
+  },
+  "en|bsk|what day is today": {
+    "translation": "khoulto besan gunx bila",
+    "transliteration": "khoulto besan gunx bila",
+    "source": "correction"
+  },
+  "en|bsk|see you tomorrow": {
+    "translation": "jimaly guyesham",
+    "transliteration": "jimaly guyesham",
+    "source": "correction"
+  },
+  "en|bsk|see you later": {
+    "translation": "mushaty guyesham",
+    "transliteration": "mushaty guyesham",
+    "source": "correction"
+  },
+  "en|bsk|i will come tomorrow": {
+    "translation": "je jimaly xuxham",
+    "transliteration": "je jimaly xuxham",
+    "source": "correction"
+  },
+  "en|bsk|i came yesterday": {
+    "translation": "je sabur dayabayam",
+    "transliteration": "je sabur dayabayam",
+    "source": "correction"
+  },
+  "en|bsk|what is the time": {
+    "translation": "khaen besan manila",
+    "transliteration": "khaen besan manila",
+    "source": "correction"
+  },
+  "en|bsk|he": {
+    "translation": "enay",
+    "transliteration": "enay",
+    "source": "correction"
+  },
+  "en|bsk|she": {
+    "translation": "enay",
+    "transliteration": "enay",
+    "source": "correction"
+  },
+  "en|bsk|they": {
+    "translation": "uwey",
+    "transliteration": "uwey",
+    "source": "correction"
+  },
+  "en|bsk|this": {
+    "translation": "guty",
+    "transliteration": "guty",
+    "source": "correction"
+  },
+  "en|bsk|that": {
+    "translation": "etay",
+    "transliteration": "etay",
+    "source": "correction"
+  },
+  "en|bsk|here": {
+    "translation": "kholy",
+    "transliteration": "kholy",
+    "source": "correction"
+  },
+  "en|bsk|there": {
+    "translation": "elay",
+    "transliteration": "elay",
+    "source": "correction"
+  },
+  "en|bsk|what": {
+    "translation": "besan",
+    "transliteration": "besan",
+    "source": "correction"
+  },
+  "en|bsk|who": {
+    "translation": "amin",
+    "transliteration": "amin",
+    "source": "correction"
+  },
+  "en|bsk|when": {
+    "translation": "beshal",
+    "transliteration": "beshal",
+    "source": "correction"
+  },
+  "en|bsk|why": {
+    "translation": "bes",
+    "transliteration": "bes",
+    "source": "correction"
+  },
+  "en|bsk|how": {
+    "translation": "belaty",
+    "transliteration": "belaty",
+    "source": "correction"
+  },
+  "en|bsk|which": {
+    "translation": "amis",
+    "transliteration": "amis",
+    "source": "correction"
+  },
+  "en|bsk|yes": {
+    "translation": "awa",
+    "transliteration": "awa",
+    "source": "correction"
+  },
+  "en|bsk|no": {
+    "translation": "beya",
+    "transliteration": "beya",
+    "source": "correction"
+  },
+  "en|bsk|not": {
+    "translation": "api",
+    "transliteration": "api",
+    "source": "correction"
+  },
+  "en|bsk|and": {
+    "translation": "dah",
+    "transliteration": "dah",
+    "source": "correction"
+  },
+  "en|bsk|come": {
+    "translation": "xu",
+    "transliteration": "xu",
+    "source": "correction"
+  },
+  "en|bsk|go": {
+    "translation": "ni",
+    "transliteration": "ni",
+    "source": "correction"
+  },
+  "en|bsk|eat": {
+    "translation": "shi",
+    "transliteration": "shi",
+    "source": "correction"
+  },
+  "en|bsk|drink": {
+    "translation": "menay",
+    "transliteration": "menay",
+    "source": "correction"
+  },
+  "en|bsk|sleep": {
+    "translation": "goyan",
+    "transliteration": "goyan",
+    "source": "correction"
+  },
+  "en|bsk|see": {
+    "translation": "bary",
+    "transliteration": "bary",
+    "source": "correction"
+  },
+  "en|bsk|hear": {
+    "translation": "dukoyal",
+    "transliteration": "dukoyal",
+    "source": "correction"
+  },
+  "en|bsk|say": {
+    "translation": "ghary",
+    "transliteration": "ghary",
+    "source": "correction"
+  },
+  "en|bsk|know": {
+    "translation": "hen",
+    "transliteration": "hen",
+    "source": "correction"
+  },
+  "en|bsk|want": {
+    "translation": "awaji",
+    "transliteration": "awaji",
+    "source": "correction"
+  },
+  "en|bsk|give": {
+    "translation": "jo",
+    "transliteration": "jo",
+    "source": "correction"
+  },
+  "en|bsk|take": {
+    "translation": "chu",
+    "transliteration": "chu",
+    "source": "correction"
+  },
+  "en|bsk|do": {
+    "translation": "eti",
+    "transliteration": "eti",
+    "source": "correction"
+  },
+  "en|bsk|make": {
+    "translation": "desman",
+    "transliteration": "desman",
+    "source": "correction"
+  },
+  "en|bsk|give me": {
+    "translation": "jo",
+    "transliteration": "jo",
+    "source": "correction"
+  },
+  "en|bsk|give her": {
+    "translation": "mu",
+    "transliteration": "mu",
+    "source": "correction"
+  },
+  "en|bsk|give them": {
+    "translation": "uo",
+    "transliteration": "uo",
+    "source": "correction"
+  },
+  "en|bsk|give him": {
+    "translation": "yu",
+    "transliteration": "yu",
+    "source": "correction"
+  },
+  "en|bsk|give us": {
+    "translation": "meiv",
+    "transliteration": "meiv",
+    "source": "correction"
+  }
+}

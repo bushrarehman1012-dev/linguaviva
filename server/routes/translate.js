@@ -1,17 +1,67 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const NodeCache = require('node-cache');
+const https = require('https');
+const { getWordListContext } = require('../data/wordlists');
+const { getDictionaryContext } = require('../data/bskDictionary');
+const { getMasterContext } = require('../data/masterLookup');
+const corrections = require('../data/corrections');
+const lexicon = require('../data/lexicon');
+
+// MyMemory free API (Google Translate-backed) for languages it supports
+const MYMEMORY_LANGS = new Set(['ps', 'ur']); // Pashto & Urdu supported by Google Translate
+
+// MyMemory uses locale codes for some languages
+const MM_LANG = { ps: 'ps-AF', ur: 'ur-PK', en: 'en-US' };
+function myMemoryTranslate(text, sourceLang, targetLang) {
+  return new Promise((resolve) => {
+    const encoded = encodeURIComponent(text);
+    const src = MM_LANG[sourceLang] || sourceLang;
+    const tgt = MM_LANG[targetLang] || targetLang;
+    const url = `https://api.mymemory.translated.net/get?q=${encoded}&langpair=${src}|${tgt}&de=bushrarehman1012@gmail.com`;
+    const req = https.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.responseStatus === 200 && parsed.responseData?.translatedText) {
+            resolve(parsed.responseData.translatedText);
+          } else {
+            resolve(null);
+          }
+        } catch { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(8000, () => { req.destroy(); resolve(null); });
+  });
+}
 
 const router = express.Router();
 const cache = new NodeCache({ stdTTL: 600 });
+const validateCache = new NodeCache({ stdTTL: 3600 });
 
 const LANGUAGE_NAMES = {
-  ps: 'Pashto',
-  bsk: 'Burushaski',
-  scl: 'Shina',
-  hno: 'Hindko',
-  mvy: 'Kohistani (Indus Kohistani)',
-  en: 'English',
+  ps: 'Pashto', bsk: 'Burushaski', scl: 'Shina', hno: 'Hindko',
+  mvy: 'Indus Kohistani', khw: 'Khowar (Chitrali)', bft: 'Balti',
+  wbl: 'Wakhi', trw: 'Torwali', kls: 'Kalasha', en: 'English', ur: 'Urdu',
+};
+
+const LOW_RESOURCE = new Set(['bsk', 'scl', 'mvy', 'khw', 'bft', 'wbl', 'trw', 'kls']);
+
+const LANG_NOTES = {
+  bsk: 'Burushaski is a language isolate of Hunza-Nagar, Gilgit-Baltistan. It has 4 noun classes (hm, hf, x, y) and complex verb morphology. Pronouns: I=je, you=un, he/she=im, we=mi. Copula: is/are (animate)=yini, is/are (location/origin)=yimi. Question words: what=i, where=mini, who=inai, how=man. Verbs: go=yen, come=yas, eat=bats, drink=phuy, say=gus, know=bim. Negative prefix: baa- or b-. Sentence order is SOV. Core vocabulary: water=sil, fire=jun, house=ha, name=ming, your=uny, my=e, good=jan.',
+  scl: 'Shina is a Dardic Indo-Aryan language of Gilgit-Baltistan.',
+  hno: 'Hindko is spoken in Hazara and Peshawar Valley, closely related to Punjabi. Write in Nastaliq.',
+  mvy: 'Indus Kohistani is a critically endangered Dardic language of Kohistan, KPK.',
+  khw: 'Khowar (Chitrali) is a Dardic language of Chitral district, KPK.',
+  bft: 'Balti is a Tibetic language of Baltistan with archaic Tibetan features.',
+  wbl: 'Wakhi is an Eastern Iranian language of Gojal (upper Hunza).',
+  trw: 'Torwali is a Dardic language of Swat Kohistan.',
+  kls: 'Kalasha has no standardized script — always use Latin transliteration.',
+  ps: 'Pashto is an Eastern Iranian language. Write in Pashto Nastaliq script (RTL).',
+  ur: 'Urdu is the national language of Pakistan, written in Nastaliq script (RTL). It shares vocabulary with Persian, Arabic, and Hindi.',
 };
 
 router.post('/', async (req, res) => {
@@ -20,16 +70,175 @@ router.post('/', async (req, res) => {
   if (!text || !sourceLang || !targetLang) {
     return res.status(400).json({ error: 'text, sourceLang, and targetLang are required' });
   }
-  if (!text.trim()) return res.json({ translation: '', source: 'none' });
+  if (!text.trim()) return res.json({ translation: '', transliteration: '', source: 'none' });
 
   const cacheKey = `${sourceLang}|${targetLang}|${text.trim()}`;
+
+  // PRIORITY 0: Lexicon exact match — native-speaker verified, highest confidence
+  const lexResult = lexicon.getContext(text.trim(), sourceLang, targetLang);
+  if (lexResult?.isExact) {
+    const payload = { translation: lexResult.translation, transliteration: lexResult.roman || lexResult.translation, source: 'verified', lowResource: LOW_RESOURCE.has(targetLang) };
+    cache.set(cacheKey, payload);
+    return res.json(payload);
+  }
+
+  // PRIORITY 1: Community corrections (override anything below)
+  const userCorrection = corrections.getByKey(cacheKey);
+  if (userCorrection) return res.json(userCorrection);
+
   const cached = cache.get(cacheKey);
-  if (cached) return res.json({ translation: cached, source: 'ai_cached' });
+  if (cached) return res.json({ ...cached, source: 'ai_cached' });
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'AI service not configured', source: 'none' });
 
   const sourceName = LANGUAGE_NAMES[sourceLang] || sourceLang;
+  const targetName = LANGUAGE_NAMES[targetLang] || targetLang;
+  const isLowResource = LOW_RESOURCE.has(targetLang);
+
+  // === PRIORITY 2: BSK Research Academy dictionary (exact match) ===
+  const dictContext = targetLang === 'bsk' ? getDictionaryContext(text.trim(), sourceLang) : '';
+  if (dictContext.startsWith('\nVERIFIED DICTIONARY ENTRY')) {
+    const match = dictContext.match(/"[^"]*" = "([^"]*)"/);
+    if (match) {
+      const verified = match[1];
+      const payload = { translation: verified, transliteration: verified, source: 'verified', lowResource: isLowResource };
+      cache.set(cacheKey, payload);
+      return res.json(payload);
+    }
+  }
+
+  // === Build RAG context for Gemini ===
+  const langNote = LANG_NOTES[targetLang] || '';
+
+  // Lexicon word-level hits (verified vocab for words within this phrase)
+  const lexHits = lexResult?.context || '';
+
+  // Corrections word-level hits
+  const corrWordHits = corrections.getWordHits(sourceLang, targetLang, text.trim());
+  const corrWordContext = corrWordHits.length
+    ? `\nCOMMUNITY-VERIFIED WORDS (use these exact forms):\n` +
+      corrWordHits.map(h => `"${h.word}" = "${h.translation}"`).join('\n') + '\n'
+    : '';
+
+  // Legacy wordlist + master table context (still useful for non-BSK languages)
+  const masterResult  = getMasterContext(text.trim(), sourceLang, targetLang);
+  const masterContext = (!masterResult?.isExact && masterResult?.context) ? masterResult.context : '';
+  const wordContext   = getWordListContext(targetLang, text.trim());
+
+  const prompt =
+    `You are a linguistic expert in the regional and endangered languages of Pakistan's KPK and Gilgit-Baltistan.\n` +
+    (langNote ? `Language context: ${langNote}\n` : '') +
+    (isLowResource
+      ? `CRITICAL: ${targetName} is a severely low-resource language with almost no AI training data. ` +
+        `Use ONLY the verified vocabulary provided below. ` +
+        `Do NOT guess or invent words. If you cannot translate confidently from the verified sources, ` +
+        `return {"translation":"[not found]","transliteration":""} rather than fabricating output.\n`
+      : '') +
+    lexHits +
+    corrWordContext +
+    masterContext +
+    wordContext +
+    dictContext +
+    `\nTask: Translate the following ${sourceName} text into ${targetName}.\n` +
+    `Return ONLY valid JSON (no markdown, no explanation, no extra text):\n` +
+    `{"translation":"<${targetName} in native script or Latin>","transliteration":"<Latin romanization>"}\n\n` +
+    `${sourceName} input: "${text.trim()}"`;
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const result = await model.generateContent(prompt);
+    const raw = result.response.text().trim();
+
+    console.log(`[translate] raw response for "${text}" → ${targetLang}:`, raw.slice(0, 200));
+
+    let parsed = null;
+
+    // Strategy 1: direct JSON parse
+    try { parsed = JSON.parse(raw); } catch {}
+
+    // Strategy 2: strip markdown code fences then parse
+    if (!parsed) {
+      try {
+        const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+        parsed = JSON.parse(stripped);
+      } catch {}
+    }
+
+    // Strategy 3: extract first {...} block (greedy to capture full object)
+    if (!parsed) {
+      try {
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+      } catch {}
+    }
+
+    if (parsed && (parsed.translation || parsed.transliteration)) {
+      const payload = {
+        translation: parsed.translation || parsed.transliteration || '',
+        transliteration: parsed.transliteration || '',
+        source: 'ai',
+        lowResource: isLowResource,
+      };
+      cache.set(cacheKey, payload);
+      return res.json(payload);
+    }
+
+    // Fallback: treat raw text as the translation if it doesn't look like JSON
+    if (raw && !raw.includes('{')) {
+      const payload = { translation: raw, transliteration: '', source: 'ai', lowResource: isLowResource };
+      cache.set(cacheKey, payload);
+      return res.json(payload);
+    }
+
+    console.warn(`[translate] all parse strategies failed for "${text}". Raw: ${raw.slice(0, 300)}`);
+
+    // Last resort for Google-supported languages: try MyMemory
+    if (MYMEMORY_LANGS.has(targetLang)) {
+      const gt = await myMemoryTranslate(text, sourceLang, targetLang);
+      if (gt) {
+        const payload = { translation: gt, transliteration: '', source: 'google', lowResource: false };
+        cache.set(cacheKey, payload);
+        return res.json(payload);
+      }
+    }
+
+    return res.json({ translation: '', transliteration: '', source: 'none' });
+  } catch (err) {
+    console.error('Translation error:', err.message);
+
+    // If Gemini threw, try MyMemory for supported languages before giving up
+    if (MYMEMORY_LANGS.has(targetLang)) {
+      try {
+        const gt = await myMemoryTranslate(text, sourceLang, targetLang);
+        if (gt) {
+          const payload = { translation: gt, transliteration: '', source: 'google', lowResource: false };
+          cache.set(cacheKey, payload);
+          return res.json(payload);
+        }
+      } catch {}
+    }
+
+    return res.status(500).json({ error: 'Translation failed', source: 'none' });
+  }
+});
+
+// Back-translation validation
+router.post('/validate', async (req, res) => {
+  const { text, translation, targetLang } = req.body;
+  if (!text || !translation || !targetLang) {
+    return res.status(400).json({ error: 'text, translation, and targetLang are required' });
+  }
+
+  const cacheKey = `validate|${targetLang}|${translation}`;
+  const cached = validateCache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'AI service not configured' });
+
   const targetName = LANGUAGE_NAMES[targetLang] || targetLang;
 
   try {
@@ -37,25 +246,32 @@ router.post('/', async (req, res) => {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt =
-      `You are a linguistic expert specializing in the endangered languages of Pakistan's KPK and Gilgit-Baltistan regions. ` +
-      `Translate accurately and preserve cultural nuance. ` +
-      `For low-resource languages (Burushaski, Shina, Hindko, Kohistani), use your best knowledge. ` +
-      `Return ONLY the translation. No explanations, no alternatives.\n\n` +
-      `Translate from ${sourceName} to ${targetName}:\n\n${text.trim()}`;
+      `You are verifying a ${targetName} translation.\n` +
+      `Original English: "${text}"\n` +
+      `Translation to check: "${translation}"\n\n` +
+      `1. Back-translate to English.\n` +
+      `2. Rate accuracy: "high", "medium", or "low".\n` +
+      `Return ONLY valid JSON: {"backTranslation":"...","accuracy":"high|medium|low","notes":"one sentence"}\n` +
+      `No markdown, no extra text.`;
 
     const result = await model.generateContent(prompt);
-    const translation = result.response.text().trim();
+    const raw = result.response.text().trim();
 
-    if (translation) {
-      cache.set(cacheKey, translation);
-      return res.json({ translation, source: 'ai' });
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      const match = raw.match(/\{[\s\S]*\}/);
+      parsed = match ? JSON.parse(match[0]) : { backTranslation: '', accuracy: 'low', notes: 'Could not verify' };
     }
 
-    return res.json({ translation: '', source: 'none' });
+    validateCache.set(cacheKey, parsed);
+    return res.json(parsed);
   } catch (err) {
-    console.error('Translation error:', err.message);
-    return res.status(500).json({ error: 'Translation failed', source: 'none' });
+    console.error('Validation error:', err.message);
+    return res.status(500).json({ error: 'Validation failed' });
   }
 });
 
 module.exports = router;
+module.exports.cache = cache; // exported so feedback route can bust stale entries

@@ -1,0 +1,172 @@
+{
+  "entries": [
+    {
+      "id": 1782815946215,
+      "timestamp": "2026-06-30T10:39:06.215Z",
+      "text": "Go away",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "dali mushulo yen",
+      "transliteration": "dali mushulo yen",
+      "verdict": "bad",
+      "correction": "Ni",
+      "promoted": false
+    },
+    {
+      "id": 1782819476528,
+      "timestamp": "2026-06-30T11:37:56.528Z",
+      "text": "hello",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "test_wrong",
+      "transliteration": "test_wrong",
+      "verdict": "bad",
+      "correction": "salaam",
+      "promoted": false
+    },
+    {
+      "id": 1782819579525,
+      "timestamp": "2026-06-30T11:39:39.525Z",
+      "text": "go away",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "dáli múshulo yen",
+      "transliteration": "dáli múshulo yen",
+      "verdict": "bad",
+      "correction": "Ni",
+      "promoted": false
+    },
+    {
+      "id": 1782819668441,
+      "timestamp": "2026-06-30T11:41:08.441Z",
+      "text": "come here",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "dágow",
+      "transliteration": "dágow",
+      "verdict": "bad",
+      "correction": "xu kholer",
+      "promoted": false
+    },
+    {
+      "id": 1782822219933,
+      "timestamp": "2026-06-30T12:23:39.933Z",
+      "text": "bring me water",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "[not found]",
+      "transliteration": "",
+      "verdict": "bad",
+      "correction": "ja gane sil dusu",
+      "promoted": false
+    },
+    {
+      "id": 1782822282431,
+      "timestamp": "2026-06-30T12:24:42.431Z",
+      "text": "I need water",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "[not found]",
+      "transliteration": "",
+      "verdict": "bad",
+      "correction": "ja ar sil awaji",
+      "promoted": false
+    },
+    {
+      "id": 1782848664874,
+      "timestamp": "2026-06-30T19:44:24.874Z",
+      "text": "need",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "déccanas",
+      "transliteration": "déccanas",
+      "verdict": "good",
+      "correction": "",
+      "promoted": false
+    },
+    {
+      "id": 1782848701472,
+      "timestamp": "2026-06-30T19:45:01.472Z",
+      "text": "need",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "déccanas",
+      "transliteration": "déccanas",
+      "verdict": "good",
+      "correction": "",
+      "promoted": false
+    },
+    {
+      "id": 1782848740612,
+      "timestamp": "2026-06-30T19:45:40.612Z",
+      "text": "where",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "mini",
+      "transliteration": "mini",
+      "verdict": "bad",
+      "correction": "amlo",
+      "promoted": false
+    },
+    {
+      "id": 1782848746072,
+      "timestamp": "2026-06-30T19:45:46.072Z",
+      "text": "where",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "amlo",
+      "transliteration": "amlo",
+      "verdict": "good",
+      "correction": "",
+      "promoted": false
+    },
+    {
+      "id": 1782848776091,
+      "timestamp": "2026-06-30T19:46:16.091Z",
+      "text": "where are you going?",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "un mini yen?",
+      "transliteration": "un mini yen?",
+      "verdict": "bad",
+      "correction": "un amlar nichaa",
+      "promoted": false
+    },
+    {
+      "id": 1782848853135,
+      "timestamp": "2026-06-30T19:47:33.135Z",
+      "text": "where is it?",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "i mini yini?",
+      "transliteration": "i mini yini?",
+      "verdict": "bad",
+      "correction": "amlo bila",
+      "promoted": false
+    },
+    {
+      "id": 1782848858923,
+      "timestamp": "2026-06-30T19:47:38.923Z",
+      "text": "where is it?",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "amlo bila",
+      "transliteration": "amlo bila",
+      "verdict": "good",
+      "correction": "",
+      "promoted": false
+    },
+    {
+      "id": 1782849443096,
+      "timestamp": "2026-06-30T19:57:23.096Z",
+      "text": "where",
+      "sourceLang": "en",
+      "targetLang": "bsk",
+      "translation": "wrong",
+      "transliteration": "wrong",
+      "verdict": "bad",
+      "correction": "mini",
+      "promoted": false
+    }
+  ]
+}

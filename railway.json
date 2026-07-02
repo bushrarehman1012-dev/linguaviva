@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd server && npm install && cd ../mobile && npm install && npx expo export --platform web --output-dir ../server/public"
+    "buildCommand": "cd server && npm install"
   },
   "deploy": {
     "startCommand": "cd server && node index.js",
