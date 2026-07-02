@@ -31,16 +31,32 @@ app.get('/{*path}', (req, res) => res.sendFile(path.join(publicDir, 'index.html'
 
 const PORT = process.env.PORT || 3001;
 
+// Health check responds immediately — even before Supabase is ready
+let _ready  = false;
+let _error  = null;
+
+app.get('/health', (req, res) => {
+  if (_error) return res.status(503).json({ ok: false, error: _error });
+  res.json({ ok: true, ready: _ready, port: PORT });
+});
+
 async function start() {
-  console.log('Connecting to Supabase and loading data...');
-  await Promise.all([
-    lexicon.initialize(),
-    corrections.initialize(),
-  ]);
-  app.listen(PORT, () => console.log(`Bašh server running on port ${PORT}`));
+  // Start HTTP server first so Railway health check never times out
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+    console.log(`SUPABASE_URL set: ${!!process.env.SUPABASE_URL}`);
+    console.log(`SUPABASE_SERVICE_KEY set: ${!!process.env.SUPABASE_SERVICE_KEY}`);
+  });
+
+  try {
+    console.log('Connecting to Supabase...');
+    await Promise.all([lexicon.initialize(), corrections.initialize()]);
+    _ready = true;
+    console.log('Supabase ready — all data loaded');
+  } catch (err) {
+    _error = err.message;
+    console.error('Supabase init error:', err.message);
+  }
 }
 
-start().catch(err => {
-  console.error('Startup failed:', err.message);
-  process.exit(1);
-});
+start();
