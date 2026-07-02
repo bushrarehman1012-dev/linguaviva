@@ -10,19 +10,24 @@ let _byText  = {};   // { [langCode]: { [lowerText]: entryId } }
 
 // ── Startup ──────────────────────────────────────────────────────────────────
 
+async function fetchAll(table, order) {
+  const PAGE = 1000;
+  let rows = [], from = 0;
+  while (true) {
+    let q = supabase.from(table).select('*').range(from, from + PAGE - 1);
+    if (order) q = q.order(order.col, { ascending: order.asc, nullsFirst: false });
+    const { data, error } = await q;
+    if (error) throw new Error(`fetchAll ${table}: ${error.message}`);
+    rows = rows.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return rows;
+}
+
 async function initialize() {
-  const { data: entries, error: e1 } = await supabase
-    .from('lexicon_entries')
-    .select('*')
-    .order('frequency_rank', { ascending: true, nullsFirst: false });
-
-  if (e1) throw new Error('lexicon init entries: ' + e1.message);
-
-  const { data: translations, error: e2 } = await supabase
-    .from('translations')
-    .select('*');
-
-  if (e2) throw new Error('lexicon init translations: ' + e2.message);
+  const entries      = await fetchAll('lexicon_entries', { col: 'frequency_rank', asc: true });
+  const translations = await fetchAll('translations');
 
   _entries = {};
   _byText  = {};
