@@ -1,174 +1,211 @@
-// Central lexicon — single source of truth for all verified translations.
-// Replaces wordlists.js + masterLookup.js.
-// Priority: community_native > dictionary > baseline > ai_unverified
+// Lexicon data layer — Supabase-backed with in-memory read cache.
+// Reads are synchronous (fast, from memory).
+// Writes are async (durable, go to Supabase then update memory).
+// Call initialize() once at server startup before accepting requests.
 
-const fs   = require('fs');
-const path = require('path');
+const supabase = require('./supabase');
 
-const FILE = path.join(__dirname, 'lexicon.json');
-let _data  = null;
-// Inverted indexes: lang → Map(lowercased text → entry)
-const _idx = {};
+let _entries = {};   // { [entryId]: { ...row, translations: { [langCode]: row } } }
+let _byText  = {};   // { [langCode]: { [lowerText]: entryId } }
 
-function load() {
-  if (_data) return;
-  try {
-    _data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-  } catch {
-    _data = { entries: [] };
+// ── Startup ──────────────────────────────────────────────────────────────────
+
+async function initialize() {
+  const { data: entries, error: e1 } = await supabase
+    .from('lexicon_entries')
+    .select('*')
+    .order('frequency_rank', { ascending: true, nullsFirst: false });
+
+  if (e1) throw new Error('lexicon init entries: ' + e1.message);
+
+  const { data: translations, error: e2 } = await supabase
+    .from('translations')
+    .select('*');
+
+  if (e2) throw new Error('lexicon init translations: ' + e2.message);
+
+  _entries = {};
+  _byText  = {};
+
+  for (const e of entries) {
+    _entries[e.id] = { ...e, translations: {} };
   }
-  _buildIndexes();
-}
 
-function _buildIndexes() {
-  _idx.clear && _idx.clear();
-  for (const key of Object.keys(_idx)) delete _idx[key];
-
-  for (const entry of _data.entries) {
-    for (const [lang, t] of Object.entries(entry.translations || {})) {
-      if (!_idx[lang]) _idx[lang] = new Map();
-      const text = (t.text || '').toLowerCase().trim();
-      const roman = (t.roman || '').toLowerCase().trim();
-      if (text)  _idx[lang].set(text,  entry);
-      if (roman && roman !== text) _idx[lang].set(roman, entry);
-      // Also index by canonical_en for any language so EN lookups are fast
-      if (entry.canonical_en) _idx[lang].set(entry.canonical_en.toLowerCase(), entry);
-    }
+  for (const t of translations) {
+    if (!_entries[t.entry_id]) continue;
+    _entries[t.entry_id].translations[t.lang_code] = t;
+    _idx(t.lang_code, t.text, t.entry_id);
   }
+
+  console.log(`[lexicon] loaded ${Object.keys(_entries).length} entries, ${translations.length} translations`);
 }
 
-/** Reload from disk (call after external writes) */
-function reload() {
-  _data = null;
-  _idx  && Object.keys(_idx).forEach(k => delete _idx[k]);
-  load();
+async function reload() {
+  await initialize();
 }
 
-/**
- * Exact lookup: given input text in sourceLang, return translation in targetLang.
- * Returns { text, roman, confidence, verified, source, notes } or null.
- */
-function lookup(text, sourceLang, targetLang) {
-  load();
-  const key = text.toLowerCase().trim();
-  const srcIdx = _idx[sourceLang];
-  if (!srcIdx) return null;
-  const entry = srcIdx.get(key);
-  if (!entry) return null;
-  const t = entry.translations[targetLang];
-  if (!t) return null;
-  return { ...t, pos: entry.type, category: entry.category };
+function _idx(langCode, text, entryId) {
+  if (!_byText[langCode]) _byText[langCode] = {};
+  _byText[langCode][text.toLowerCase().trim()] = entryId;
 }
 
-/**
- * Word-level hits: find all words in a phrase that have lexicon entries.
- * Returns array of { word, targetText, roman, confidence }.
- */
+// ── Synchronous reads (in-memory) ────────────────────────────────────────────
+
+function getContext(text, sourceLang, targetLang) {
+  const entryId = _byText[sourceLang]?.[text.toLowerCase().trim()];
+  if (!entryId) return null;
+  const t = _entries[entryId]?.translations[targetLang];
+  if (!t?.text) return null;
+  return { isExact: true, translation: t.text, roman: t.roman, confidence: t.confidence, source: t.source };
+}
+
 function wordHits(phrase, sourceLang, targetLang) {
-  load();
-  const tokens = phrase.toLowerCase()
-    .replace(/[?!.,;:'"؟]/g, ' ')
-    .split(/\s+/)
-    .filter(w => w.length > 1);
-
-  const hits = [];
-  for (const token of tokens) {
-    const srcIdx = _idx[sourceLang];
-    if (!srcIdx) continue;
-    const entry = srcIdx.get(token);
-    if (!entry) continue;
-    const t = entry.translations[targetLang];
-    if (t) hits.push({ word: token, targetText: t.text, roman: t.roman, confidence: t.confidence });
+  const STOP = new Set(['the','a','an','is','are','was','were','be','been','i','you','he','she','it','we','they','and','or','but','in','on','at','to','of','for']);
+  const words = phrase.toLowerCase().split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
+  const hits  = [];
+  for (const word of words) {
+    const entryId = _byText[sourceLang]?.[word];
+    const t = entryId && _entries[entryId]?.translations[targetLang];
+    if (t?.text) hits.push({ word, targetText: t.text, roman: t.roman, confidence: t.confidence });
   }
   return hits;
 }
 
-/**
- * Build a context string for Gemini injection.
- * Returns { isExact, translation, roman } on exact match,
- * or { isExact: false, context: string } for partial word matches,
- * or null if nothing found.
- */
-function getContext(text, sourceLang, targetLang) {
-  load();
-  const exact = lookup(text, sourceLang, targetLang);
-  if (exact) {
-    return { isExact: true, translation: exact.text, roman: exact.roman || exact.text, confidence: exact.confidence };
-  }
+function getEntry(entryId) {
+  return _entries[entryId] || null;
+}
 
-  const hits = wordHits(text, sourceLang, targetLang);
-  if (hits.length === 0) return null;
-
-  const lines = hits
-    .map(h => `"${h.word}" = "${h.targetText}"${h.roman && h.roman !== h.targetText ? ` (${h.roman})` : ''}`)
-    .join('\n');
-
+function getStats(targetLang) {
+  const all = Object.values(_entries);
   return {
-    isExact: false,
-    context: `\nVERIFIED LEXICON VOCABULARY (use these exact forms):\n${lines}\n`,
+    total:    all.length,
+    verified: all.filter(e => e.translations[targetLang]?.verified).length,
+    pending:  all.filter(e => !e.translations[targetLang]).length,
+    words:    all.filter(e => e.type === 'word').length,
+    phrases:  all.filter(e => e.type === 'phrase').length,
   };
 }
 
-/**
- * Add or update a single entry.
- * options: { type, pos, category, confidence, source, notes, verified }
- */
-function addTranslation(canonicalEn, targetLang, translationText, options = {}) {
-  load();
-  const id = canonicalEn.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  let entry = _data.entries.find(e => e.id === id || e.canonical_en === canonicalEn.toLowerCase());
+function getPending(targetLang, category) {
+  return Object.values(_entries)
+    .filter(e => {
+      const t = e.translations[targetLang];
+      return !t || !t.verified;
+    })
+    .filter(e => !category || category === 'all' || e.category === category)
+    .sort((a, b) => (a.frequency_rank || 9999) - (b.frequency_rank || 9999));
+}
 
-  if (!entry) {
-    entry = {
-      id,
-      type:         options.type     || (canonicalEn.includes(' ') ? 'phrase' : 'word'),
-      pos:          options.pos      || null,
-      category:     options.category || null,
-      canonical_en: canonicalEn.toLowerCase(),
-      translations: {
-        en: { text: canonicalEn, verified: true, source: 'baseline' },
-      },
-      updated_at: '',
-    };
-    _data.entries.push(entry);
+function getCategoryStats(targetLang) {
+  const cats = {};
+  for (const e of Object.values(_entries)) {
+    const c = e.category || 'uncategorised';
+    if (!cats[c]) cats[c] = { total: 0, verified: 0, pending: 0 };
+    cats[c].total++;
+    if (e.translations[targetLang]?.verified) cats[c].verified++;
+    else cats[c].pending++;
   }
+  return cats;
+}
 
-  entry.translations[targetLang] = {
-    text:       translationText,
-    roman:      options.roman || translationText,
-    verified:   options.verified  !== undefined ? options.verified : true,
-    confidence: options.confidence || 'high',
-    source:     options.source     || 'community_native',
-    ...(options.notes ? { notes: options.notes } : {}),
+// ── Async writes ──────────────────────────────────────────────────────────────
+
+async function addTranslation(entryId, langCode, text, opts = {}) {
+  const { roman, verified = false, confidence = 'community', source = 'community_consensus', notes } = opts;
+  const row = {
+    entry_id:   entryId,
+    lang_code:  langCode,
+    text:       text.trim(),
+    roman:      roman?.trim() || text.trim(),
+    verified,
+    confidence,
+    source,
+    notes:      notes || null,
+    updated_at: new Date().toISOString(),
   };
-  entry.updated_at = new Date().toISOString().slice(0, 10);
 
-  // Rebuild index for affected language
-  if (!_idx[targetLang]) _idx[targetLang] = new Map();
-  const text = translationText.toLowerCase().trim();
-  _idx[targetLang].set(text, entry);
-  _idx[targetLang].set(canonicalEn.toLowerCase(), entry);
+  const { error } = await supabase
+    .from('translations')
+    .upsert(row, { onConflict: 'entry_id,lang_code' });
 
-  save();
+  if (error) throw new Error('addTranslation: ' + error.message);
+
+  if (_entries[entryId]) {
+    _entries[entryId].translations[langCode] = row;
+    _idx(langCode, text.trim(), entryId);
+  }
 }
 
-function save() {
-  if (!_data) return;
-  _data.updated_at    = new Date().toISOString().slice(0, 10);
-  _data.total_entries = _data.entries.length;
-  _data.verified_bsk  = _data.entries.filter(e => e.translations?.bsk?.verified).length;
-  fs.writeFileSync(FILE, JSON.stringify(_data, null, 2), 'utf8');
+async function recordContribution(entryId, langCode, text, opts = {}) {
+  const { roman, notes, contributorTag = 'anonymous' } = opts;
+  const { data, error } = await supabase
+    .from('contributions')
+    .insert({
+      entry_id:        entryId,
+      lang_code:       langCode,
+      text:            text.trim(),
+      roman:           roman?.trim() || null,
+      notes:           notes || null,
+      contributor_tag: contributorTag,
+      status:          'pending',
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error('recordContribution: ' + error.message);
+  return data;
 }
 
-function stats() {
-  load();
-  return {
-    total:        _data.entries.length,
-    words:        _data.entries.filter(e => e.type === 'word').length,
-    phrases:      _data.entries.filter(e => e.type === 'phrase').length,
-    verified_bsk: _data.entries.filter(e => e.translations?.bsk?.verified).length,
-    updated_at:   _data.updated_at,
-  };
+async function getContributionCount(entryId, langCode, normalizedText) {
+  const { data } = await supabase
+    .from('contributions')
+    .select('text')
+    .eq('entry_id', entryId)
+    .eq('lang_code', langCode);
+
+  return (data || []).filter(c => c.text.toLowerCase() === normalizedText).length;
 }
 
-module.exports = { lookup, wordHits, getContext, addTranslation, reload, stats };
+async function promoteContributions(entryId, langCode, normalizedText) {
+  const { data } = await supabase
+    .from('contributions')
+    .select('id, text')
+    .eq('entry_id', entryId)
+    .eq('lang_code', langCode);
+
+  const ids = (data || [])
+    .filter(c => c.text.toLowerCase() === normalizedText)
+    .map(c => c.id);
+
+  if (ids.length === 0) return;
+
+  const { error } = await supabase
+    .from('contributions')
+    .update({ status: 'promoted' })
+    .in('id', ids);
+
+  if (error) throw new Error('promoteContributions: ' + error.message);
+}
+
+async function getTotalSubmissions(langCode) {
+  const q = supabase.from('contributions').select('*', { count: 'exact', head: true });
+  if (langCode) q.eq('lang_code', langCode);
+  const { count } = await q;
+  return count || 0;
+}
+
+module.exports = {
+  initialize,
+  reload,
+  getContext,
+  wordHits,
+  getEntry,
+  getStats,
+  getPending,
+  getCategoryStats,
+  addTranslation,
+  recordContribution,
+  getContributionCount,
+  promoteContributions,
+  getTotalSubmissions,
+};

@@ -1,89 +1,78 @@
-// Persistent store for user-submitted translation corrections.
-// Keys are always lowercased so "Where" and "where" resolve to the same correction.
+// Corrections data layer — Supabase-backed with in-memory read cache.
+// Reads are synchronous. Writes are async.
 
-const fs = require('fs');
-const path = require('path');
+const supabase = require('./supabase');
 
-const FILE = path.join(__dirname, 'corrections.json');
-let _store = null;
+// key: "sourceLang|targetLang|text_lowercase"  →  corrected translation string
+let _cache = new Map();
 
-function normalizeKey(sourceLang, targetLang, text) {
+// ── Startup ───────────────────────────────────────────────────────────────────
+
+async function initialize() {
+  const { data, error } = await supabase.from('corrections').select('*');
+  if (error) throw new Error('corrections init: ' + error.message);
+
+  _cache.clear();
+  for (const row of data) {
+    _cache.set(_key(row.source_lang, row.target_lang, row.original_text), row.corrected_translation);
+  }
+  console.log(`[corrections] loaded ${_cache.size} entries`);
+}
+
+function _key(sourceLang, targetLang, text) {
   return `${sourceLang}|${targetLang}|${text.trim().toLowerCase()}`;
 }
 
-function load() {
-  if (_store) return;
-  try {
-    if (fs.existsSync(FILE)) {
-      const raw = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-      // Migrate: lowercase all existing keys so old mixed-case entries still work
-      _store = new Map();
-      for (const [k, v] of Object.entries(raw)) {
-        _store.set(k.toLowerCase(), v);
-      }
-    } else {
-      _store = new Map();
-    }
-  } catch {
-    _store = new Map();
-  }
-}
+// ── Synchronous reads ─────────────────────────────────────────────────────────
 
-function save() {
-  fs.writeFileSync(FILE, JSON.stringify(Object.fromEntries(_store), null, 2), 'utf8');
-}
-
-/** Returns correction object or null */
 function get(sourceLang, targetLang, text) {
-  load();
-  return _store.get(normalizeKey(sourceLang, targetLang, text)) || null;
+  return _cache.get(_key(sourceLang, targetLang, text)) || null;
 }
 
-/** Looks up by a pre-built cache key (splits on first two | separators) */
+// cacheKey arrives as "sourceLang|targetLang|text" (already from translate.js)
 function getByKey(cacheKey) {
   const parts = cacheKey.split('|');
   if (parts.length < 3) return null;
-  const sourceLang = parts[0];
-  const targetLang = parts[1];
-  const text = parts.slice(2).join('|');
-  return get(sourceLang, targetLang, text);
+  const [src, tgt, ...rest] = parts;
+  const correction = _cache.get(`${src}|${tgt}|${rest.join('|').toLowerCase()}`);
+  return correction ? { translation: correction, source: 'correction' } : null;
 }
 
-/** Saves a correction and persists to disk */
-function add(sourceLang, targetLang, text, correctedTranslation) {
-  load();
-  const key = normalizeKey(sourceLang, targetLang, text);
-  _store.set(key, {
-    translation: correctedTranslation.trim(),
-    transliteration: correctedTranslation.trim(),
-    source: 'correction',
-  });
-  save();
-}
-
-/** Removes a correction */
-function remove(sourceLang, targetLang, text) {
-  load();
-  _store.delete(normalizeKey(sourceLang, targetLang, text));
-  save();
-}
-
-/** Returns all corrections whose source word appears as a token in the given phrase */
 function getWordHits(sourceLang, targetLang, phrase) {
-  load();
-  const tokens = phrase.toLowerCase().replace(/[?!.,;:'"؟]/g, ' ').split(/\s+/).filter(w => w.length > 1);
-  const hits = [];
-  for (const token of tokens) {
-    const key = normalizeKey(sourceLang, targetLang, token);
-    const c = _store.get(key);
-    if (c) hits.push({ word: token, translation: c.translation });
+  const STOP = new Set(['the','a','an','is','are','was','i','you','he','she','it','we','they','and','or','but','in','on','at','to','of']);
+  const words = phrase.toLowerCase().split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
+  const hits  = [];
+  for (const word of words) {
+    const correction = _cache.get(_key(sourceLang, targetLang, word));
+    if (correction) hits.push({ word, translation: correction });
   }
   return hits;
 }
 
-function size() {
-  load();
-  return _store.size;
+// ── Async writes ──────────────────────────────────────────────────────────────
+
+async function add(sourceLang, targetLang, text, correctedTranslation) {
+  const originalText = text.trim().toLowerCase();
+  const { error } = await supabase
+    .from('corrections')
+    .upsert(
+      { source_lang: sourceLang, target_lang: targetLang, original_text: originalText, corrected_translation: correctedTranslation.trim() },
+      { onConflict: 'source_lang,target_lang,original_text' }
+    );
+  if (error) throw new Error('corrections.add: ' + error.message);
+  _cache.set(_key(sourceLang, targetLang, text), correctedTranslation.trim());
 }
 
-module.exports = { get, getByKey, add, remove, getWordHits, size };
+async function remove(sourceLang, targetLang, text) {
+  const originalText = text.trim().toLowerCase();
+  const { error } = await supabase
+    .from('corrections')
+    .delete()
+    .eq('source_lang', sourceLang)
+    .eq('target_lang', targetLang)
+    .eq('original_text', originalText);
+  if (error) throw new Error('corrections.remove: ' + error.message);
+  _cache.delete(_key(sourceLang, targetLang, text));
+}
+
+module.exports = { initialize, get, getByKey, getWordHits, add, remove };
