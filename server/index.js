@@ -23,7 +23,6 @@ app.use('/api/vocabulary', vocabularyRoute);
 app.use('/api/feedback',   feedbackRoute);
 app.use('/api/contribute', contributeRoute);
 app.get('/api/languages',  (req, res) => res.json(LANGUAGES));
-app.get('/health',         (req, res) => res.json({ ok: true, ...lexicon.getStats('bsk') }));
 
 const publicDir = path.join(__dirname, 'public');
 app.use(express.static(publicDir));
