@@ -103,6 +103,7 @@ async function withNastaliq(payload, targetLang, targetName, cKey) {
 function splitSentences(text) {
   return text
     .replace(/([?!.])\s*/g, '$1\n')        // newline after each sentence-ender
+    .replace(/\s{2,}/g, '\n')              // 2+ spaces treated as a phrase boundary
     .split('\n')
     .map(s => s.replace(/[?!.,;:'"]+$/g, '').trim())  // strip trailing punctuation from each
     .filter(s => s.length > 1);
@@ -359,13 +360,21 @@ ${sourceName} input: "${text.trim()}"`;
       // Gemini sometimes literally returns "[not found]" — treat as uncertain, not empty
       const isRefusal = !tr || tr === '[not found]' || tr.toLowerCase().includes('not found') || tr === '—';
 
-      const finalTr    = isRefusal ? '' : tr;
-      const finalRoman = isRefusal ? '' : roman;
+      let finalTr    = isRefusal ? '' : tr;
+      let finalRoman = isRefusal ? '' : roman;
+
+      // Fallback: if Gemini refused but we have anchors, stitch known translations rather than returning empty
+      if (isRefusal && allAnchors.length > 0) {
+        const stitched = allAnchors
+          .map(a => { const m = a.match(/"[^"]*" → "([^"]*)"/); return m ? m[1] : ''; })
+          .filter(Boolean).join(' ');
+        if (stitched) { finalTr = stitched; finalRoman = stitched; }
+      }
 
       let payload = {
         translation:     finalTr,
         transliteration: finalRoman,
-        source:          isRefusal ? 'uncertain' : (useComposition ? 'word_based' : 'ai'),
+        source:          (!finalTr) ? 'uncertain' : (useComposition ? 'word_based' : 'ai'),
         wordCoverage:    useComposition ? Math.min(Math.round(wordCoverage * 100), 100) : undefined,
         lowResource:     isLowResource,
       };
