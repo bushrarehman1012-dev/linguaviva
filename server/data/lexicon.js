@@ -92,12 +92,16 @@ function getStats(targetLang) {
 }
 
 function getPending(targetLang, category) {
+  // category may be a comma-separated list of DB categories
+  const cats = (category && category !== 'all')
+    ? new Set(category.split(',').map(c => c.trim()).filter(Boolean))
+    : null;
   return Object.values(_entries)
     .filter(e => {
       const t = e.translations[targetLang];
       return !t || !t.verified;
     })
-    .filter(e => !category || category === 'all' || e.category === category)
+    .filter(e => !cats || cats.has(e.category || ''))
     .sort((a, b) => (a.frequency_rank || 9999) - (b.frequency_rank || 9999));
 }
 

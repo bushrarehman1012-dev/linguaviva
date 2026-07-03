@@ -21,8 +21,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .contrib-stat:last-child { border-right:none; }
 .cs-num { font-size:22px; font-weight:800; color:#4F46E5; }
 .cs-label { font-size:11px; color:#9CA3AF; font-weight:600; margin-top:2px; }
-.cat-btn { padding:6px 12px; border-radius:20px; border:1.5px solid #E5E7EB; background:#fff; font-size:12px; font-weight:600; cursor:pointer; color:#6B7280; transition:all .15s; }
-.cat-btn.active { background:#4F46E5; color:#fff; border-color:#4F46E5; }
+.cat-select { width:100%; padding:9px 12px; border:1px solid #E5E7EB; border-radius:10px; font-size:14px; font-weight:600; background:#fff; cursor:pointer; outline:none; margin-bottom:14px; }
+.cat-select:focus { border-color:#4F46E5; }
 .recent-row { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#F9FAFB; border-radius:8px; margin-bottom:6px; font-size:13px; }
 .recent-en  { color:#374151; font-weight:600; }
 .recent-bsk { color:#4F46E5; font-weight:700; }
@@ -77,9 +77,6 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
 /* Phrases */
 .lang-select-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .lang-select-row label { font-size: 13px; font-weight: 600; color: #6B7280; white-space: nowrap; }
-.cat-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.cat-btn { padding: 6px 12px; border-radius: 20px; border: 1px solid #E5E7EB; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; color: #6B7280; }
-.cat-btn.active { background: #4F46E5; color: #fff; border-color: #4F46E5; }
 .phrase-card { background: #fff; border-radius: 12px; padding: 14px; border: 1px solid #F3F4F6; margin-bottom: 8px; }
 .phrase-en { font-size: 12px; color: #9CA3AF; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
 .phrase-tr { font-size: 20px; font-weight: 600; color: #111827; line-height: 1.4; }
@@ -219,7 +216,7 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
   </div>
 
   <!-- Category filter -->
-  <div id="contrib-cats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
+  <select class="cat-select" id="contrib-cat-select" onchange="selectCat(this.value)"></select>
 
   <!-- Main card -->
   <div class="card" id="contrib-card" style="display:none">
@@ -301,7 +298,7 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
       <option value="kls">Kalasha</option>
     </select>
   </div>
-  <div class="cat-row" id="cat-row"></div>
+  <select class="cat-select" id="cat-select" onchange="onPhrasesCatChange(this.value)"></select>
   <div id="phrases-list"></div>
 </div>
 
@@ -321,7 +318,35 @@ const LANGUAGES = [
 ];
 
 const LOW_RESOURCE = new Set(['bsk','scl','mvy','khw','bft','wbl','trw','kls']);
-const CATEGORIES = ['greetings','travel','food','emergency','numbers','family'];
+
+// Consolidated category groups — value maps to one or more DB category names (comma-separated)
+const PHRASE_CATS = [
+  { value: 'greetings',                                                    label: 'Greetings' },
+  { value: 'travel',                                                       label: 'Travel & Transport' },
+  { value: 'food',                                                         label: 'Food & Drink' },
+  { value: 'emergency',                                                    label: 'Emergency & Health' },
+  { value: 'nature',                                                       label: 'Nature & Outdoors' },
+  { value: 'trekking',                                                     label: 'Trekking & Mountains' },
+  { value: 'family',                                                       label: 'Family & People' },
+  { value: 'culture,religion,places',                                      label: 'Culture & Religion' },
+  { value: 'numbers,time',                                                 label: 'Numbers & Time' },
+  { value: 'daily,work,objects',                                           label: 'Daily Life' },
+];
+
+const CONTRIB_CATS = [
+  { value: 'all',                                                          label: 'All Categories' },
+  { value: 'greetings,communication',                                      label: 'Greetings' },
+  { value: 'travel,transport,directions,accommodation,shopping',           label: 'Travel & Transport' },
+  { value: 'food',                                                         label: 'Food & Drink' },
+  { value: 'emergency,body',                                               label: 'Emergency & Health' },
+  { value: 'nature,trekking',                                              label: 'Nature & Outdoors' },
+  { value: 'family,emotions',                                              label: 'Family & People' },
+  { value: 'culture,religion,places',                                      label: 'Culture & Religion' },
+  { value: 'numbers,time',                                                 label: 'Numbers & Time' },
+  { value: 'daily,work,objects,household,clothing,agriculture',            label: 'Daily Life' },
+  { value: 'vocabulary,general,education,colors,common_verbs',             label: 'Vocabulary' },
+];
+
 let activeCategory = 'greetings';
 let recognition = null;
 let isListening = false;
@@ -560,16 +585,17 @@ function goTranslate(code) {
 
 // ─── Phrases Page ────────────────────────────────────────────────────────────
 function initPhrases() {
-  document.getElementById('cat-row').innerHTML = CATEGORIES.map(c =>
-    `<button class="cat-btn ${c === activeCategory ? 'active' : ''}" onclick="setCategory('${c}',this)">${c.charAt(0).toUpperCase()+c.slice(1)}</button>`
-  ).join('');
+  const sel = document.getElementById('cat-select');
+  if (!sel.options.length) {
+    sel.innerHTML = PHRASE_CATS.map(c =>
+      `<option value="${c.value}"${c.value === activeCategory ? ' selected' : ''}>${c.label}</option>`
+    ).join('');
+  }
   loadPhrases();
 }
 
-function setCategory(cat, btn) {
-  activeCategory = cat;
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+function onPhrasesCatChange(val) {
+  activeCategory = val;
   loadPhrases();
 }
 
@@ -661,10 +687,11 @@ function getContribLangName() {
 }
 
 function onContribLangChange() {
-  _contribLang = document.getElementById('contrib-lang').value;
-  _contribCat  = 'all';
-  _contribIdx  = 0;
-  _contribInited = false; // force full reload
+  _contribLang   = document.getElementById('contrib-lang').value;
+  _contribCat    = 'all';
+  _contribIdx    = 0;
+  _contribInited = false;
+  document.getElementById('contrib-cat-select').value = 'all';
   initContribute();
 }
 
@@ -679,7 +706,7 @@ async function initContribute() {
   document.getElementById('contrib-bsk').placeholder =
     `Type the ${name} word or phrase…`;
   await refreshContribStats();
-  await loadContribCategories();
+  loadContribCategories();
   await loadContribQueue();
 }
 
@@ -693,29 +720,15 @@ async function refreshContribStats() {
   } catch {}
 }
 
-async function loadContribCategories() {
-  try {
-    const r = await fetch(`/api/contribute/categories?targetLang=${_contribLang}`);
-    const cats = await r.json();
-    const container = document.getElementById('contrib-cats');
-    container.innerHTML = '';
-
-    const all = Object.values(cats).reduce((s,c) => s + c.pending, 0);
-    container.innerHTML += `<button class="cat-btn active" onclick="selectCat('all',this)">All (${all})</button>`;
-
-    const sorted = Object.entries(cats).sort((a,b) => b[1].pending - a[1].pending);
-    for (const [cat, info] of sorted) {
-      if (info.pending === 0) continue;
-      const label = cat.charAt(0).toUpperCase() + cat.slice(1);
-      container.innerHTML += `<button class="cat-btn" onclick="selectCat('${cat}',this)">${label} (${info.pending})</button>`;
-    }
-  } catch {}
+function loadContribCategories() {
+  const sel = document.getElementById('contrib-cat-select');
+  sel.innerHTML = CONTRIB_CATS.map(c =>
+    `<option value="${c.value}"${c.value === _contribCat ? ' selected' : ''}>${c.label}</option>`
+  ).join('');
 }
 
-async function selectCat(cat, btn) {
-  _contribCat = cat;
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+async function selectCat(val) {
+  _contribCat = val;
   _contribIdx = 0;
   await loadContribQueue();
 }
