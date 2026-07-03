@@ -200,13 +200,20 @@ ${sourceName} input: "${text.trim()}"`;
     }
 
     if (parsed) {
-      const tr = (parsed.translation || parsed.transliteration || '').trim();
+      const rawTr   = (parsed.translation    || '').trim();
+      const rawRoman = (parsed.transliteration || '').trim();
+
+      // Gemini sometimes echoes the source text as "translation" and puts the real result in "transliteration"
+      const isEcho = rawTr && rawTr.toLowerCase() === text.trim().toLowerCase();
+      const tr = isEcho ? rawRoman : (rawTr || rawRoman);
+      const roman = rawRoman || tr;
+
       // Gemini sometimes literally returns "[not found]" — treat as uncertain, not empty
       const isRefusal = !tr || tr === '[not found]' || tr.toLowerCase().includes('not found') || tr === '—';
 
       const payload = {
         translation:    isRefusal ? '' : tr,
-        transliteration: isRefusal ? '' : (parsed.transliteration || '').trim(),
+        transliteration: isRefusal ? '' : roman,
         source:         isRefusal ? 'uncertain' : (useComposition ? 'word_based' : 'ai'),
         wordCoverage:   useComposition ? Math.round(wordCoverage * 100) : undefined,
         lowResource:    isLowResource,

@@ -406,7 +406,9 @@ async function doTranslate() {
     const nativeScript  = data.translation || '';
     const romanization  = data.transliteration || '';
     const hasTranslation = !!nativeScript;
-    const showBoth = romanization && romanization.toLowerCase() !== nativeScript.toLowerCase();
+    // Always show romanization in the italic section when it exists — for Latin-script languages
+    // (BSK, Shina, etc.) the translation IS the romanization, so show it in both slots.
+    const showBoth = !!romanization;
     const isUncertain = data.source === 'uncertain';
 
     function sourceBadge(src) {
