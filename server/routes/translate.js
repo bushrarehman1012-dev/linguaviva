@@ -224,11 +224,35 @@ router.post('/', async (req, res) => {
   // Verified word-level hits from the lexicon
   const lexHits = lexResult?.context || '';
 
-  // Corrections word-level hits
+  // Corrections word-level hits (single-word)
   const corrWordHits = corrections.getWordHits(sourceLang, targetLang, text.trim());
-  const corrWordContext = corrWordHits.length
-    ? `\nCOMMUNITY-VERIFIED WORDS (use these exact forms):\n` +
-      corrWordHits.map(h => `"${h.word}" = "${h.translation}"`).join('\n') + '\n'
+
+  // Corrections phrase hits — N-gram scan of corrections store for sub-phrases
+  // (handles "how are you where are you" where each half is a known correction)
+  function correctionPhraseHits(phrase) {
+    const clean = phrase.toLowerCase().replace(/[?!.,;:'"]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const tokens = clean.split(' ').filter(w => w.length > 0);
+    const hits = [];
+    const covered = new Set();
+    for (let len = Math.min(tokens.length, 10); len >= 2; len--) {
+      for (let start = 0; start <= tokens.length - len; start++) {
+        if (Array.from({ length: len }, (_, i) => covered.has(start + i)).every(Boolean)) continue;
+        const p = tokens.slice(start, start + len).join(' ');
+        const corr = corrections.getByKey(`${sourceLang}|${targetLang}|${p}`);
+        if (corr) {
+          hits.push({ word: p, translation: corr.translation });
+          for (let i = start; i < start + len; i++) covered.add(i);
+        }
+      }
+    }
+    return hits;
+  }
+  const corrPhraseHits = correctionPhraseHits(text.trim());
+
+  const corrWordContext = (corrWordHits.length || corrPhraseHits.length)
+    ? `\nCOMMUNITY-VERIFIED WORDS/PHRASES (use these exact forms):\n` +
+      [...corrWordHits.map(h => `"${h.word}" = "${h.translation}"`),
+       ...corrPhraseHits.map(h => `"${h.word}" = "${h.translation}"`)].join('\n') + '\n'
     : '';
 
   // Legacy wordlist + master table context (still useful for non-BSK languages)
@@ -239,12 +263,13 @@ router.post('/', async (req, res) => {
   // Use composition mode when we have ANY verified anchor from our own database —
   // lexicon word hits OR community corrections. Our DB is always the primary source;
   // Gemini only fills in what the DB can't cover.
-  const useComposition = isLowResource && (wordHitsList.length >= 1 || corrWordHits.length >= 1);
+  const useComposition = isLowResource && (wordHitsList.length >= 1 || corrWordHits.length >= 1 || corrPhraseHits.length >= 1);
 
   // All known anchors combined (lexicon word hits + community corrections)
   const allAnchors = [
     ...wordHitsList.map(h => `"${h.word}" → "${h.roman}"`),
     ...corrWordHits.map(h => `"${h.word}" → "${h.translation}"`),
+    ...corrPhraseHits.map(h => `"${h.word}" → "${h.translation}"`),
   ];
 
   const needsNastaliq = NASTALIQ_LANGS.has(targetLang);
