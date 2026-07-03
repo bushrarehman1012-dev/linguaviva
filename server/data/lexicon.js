@@ -79,23 +79,45 @@ function getContext(text, sourceLang, targetLang) {
       if (!_entries[entryId]) entryId = null;
     }
   }
-  if (!entryId) return null;
-  const t = _entries[entryId]?.translations[targetLang];
-  // Only serve translations that have been explicitly verified — never guess with unverified data
-  if (!t?.text || !t.verified) return null;
-  return { isExact: true, translation: t.text, roman: t.roman, confidence: t.confidence, source: t.source };
+  if (entryId) {
+    const t = _entries[entryId]?.translations[targetLang];
+    // Only serve translations that have been explicitly verified
+    if (t?.text && t.verified) {
+      return { isExact: true, translation: t.text, roman: t.roman, confidence: t.confidence, source: t.source };
+    }
+  }
+
+  // No exact match — gather verified word-level hits so the caller can build context for AI
+  const { hits, coverage } = wordHits(text, sourceLang, targetLang);
+  if (hits.length === 0) return null;
+
+  const context =
+    `\nVERIFIED ${targetLang.toUpperCase()} VOCABULARY (you MUST use these exact forms — do not change them):\n` +
+    hits.map(h => `"${h.word}" = "${h.roman}"`).join('\n') + '\n';
+
+  return { isExact: false, context, hits, coverage };
 }
 
 function wordHits(phrase, sourceLang, targetLang) {
-  const STOP = new Set(['the','a','an','is','are','was','were','be','been','i','you','he','she','it','we','they','and','or','but','in','on','at','to','of','for']);
-  const words = phrase.toLowerCase().split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
-  const hits  = [];
-  for (const word of words) {
+  const STOP = new Set(['the','a','an','is','are','was','were','be','been','i','you','he','she','it','we','they','and','or','but','in','on','at','to','of','for','do','does','did','have','has','can','could','will','would','please']);
+  const tokens = phrase.toLowerCase().replace(/[?!.,;:'"]+/g, '').split(/\s+/).filter(w => w.length > 0);
+  const contentTokens = tokens.filter(w => !STOP.has(w));
+  const hits = [];
+  const seenWords = new Set();
+
+  for (const word of tokens) {
+    if (seenWords.has(word)) continue;
+    seenWords.add(word);
     const entryId = _byText[sourceLang]?.[word];
     const t = entryId && _entries[entryId]?.translations[targetLang];
-    if (t?.text) hits.push({ word, targetText: t.text, roman: t.roman, confidence: t.confidence });
+    // Only use verified translations as word anchors
+    if (t?.text && t.verified) {
+      hits.push({ word, targetText: t.text, roman: t.roman || t.text, confidence: t.confidence });
+    }
   }
-  return hits;
+
+  const coverage = contentTokens.length > 0 ? hits.length / contentTokens.length : 0;
+  return { hits, coverage };
 }
 
 function getEntry(entryId) {

@@ -82,6 +82,9 @@ router.post('/', async (req, res) => {
     return res.json(payload);
   }
 
+  const wordCoverage = lexResult?.coverage || 0;
+  const wordHitsList = lexResult?.hits  || [];
+
   // PRIORITY 1: Community corrections (override anything below)
   const userCorrection = corrections.getByKey(cacheKey);
   if (userCorrection) return res.json(userCorrection);
@@ -111,7 +114,7 @@ router.post('/', async (req, res) => {
   // === Build RAG context for Gemini ===
   const langNote = LANG_NOTES[targetLang] || '';
 
-  // Lexicon word-level hits (verified vocab for words within this phrase)
+  // Verified word-level hits from the lexicon
   const lexHits = lexResult?.context || '';
 
   // Corrections word-level hits
@@ -126,24 +129,42 @@ router.post('/', async (req, res) => {
   const masterContext = (!masterResult?.isExact && masterResult?.context) ? masterResult.context : '';
   const wordContext   = getWordListContext(targetLang, text.trim());
 
-  const prompt =
-    `You are a linguistic expert in the regional and endangered languages of Pakistan's KPK and Gilgit-Baltistan.\n` +
-    (langNote ? `Language context: ${langNote}\n` : '') +
-    (isLowResource
+  // For low-resource languages with partial word coverage, use a composition strategy
+  // rather than asking Gemini to translate from scratch. The verified anchors act as
+  // locked building blocks — Gemini handles grammar, word order, and morphology.
+  const useComposition = isLowResource && wordCoverage >= 0.4 && wordHitsList.length >= 1;
+
+  const prompt = useComposition
+    ? `You are a ${targetName} linguistic expert. Your task is to compose a ${targetName} translation using VERIFIED word anchors — you must use these exact forms as-is, because they were verified by native speakers.
+
+Language notes: ${langNote}
+
+VERIFIED WORD ANCHORS (use these exact forms, do not alter them):
+${wordHitsList.map(h => `"${h.word}" → "${h.roman}"`).join('\n')}
+${corrWordHits.map(h => `"${h.word}" → "${h.translation}"`).join('\n')}
+
+${dictContext}
+${masterContext}
+${wordContext}
+
+Using these anchors and correct ${targetName} grammar/word order, compose the best possible translation of:
+"${text.trim()}"
+
+If you don't know a word, use the closest anchor available. Note: ${targetName} uses SOV word order for most sentences.
+Return ONLY valid JSON: {"translation":"<result>","transliteration":"<Latin romanization>"}
+No markdown, no explanation.`
+    : `You are a linguistic expert in the regional and endangered languages of Pakistan's KPK and Gilgit-Baltistan.
+${langNote ? `Language context: ${langNote}\n` : ''}${isLowResource
       ? `CRITICAL: ${targetName} is a severely low-resource language with almost no AI training data. ` +
         `Use ONLY the verified vocabulary provided below. ` +
         `Do NOT guess or invent words. If you cannot translate confidently from the verified sources, ` +
         `return {"translation":"[not found]","transliteration":""} rather than fabricating output.\n`
-      : '') +
-    lexHits +
-    corrWordContext +
-    masterContext +
-    wordContext +
-    dictContext +
-    `\nTask: Translate the following ${sourceName} text into ${targetName}.\n` +
-    `Return ONLY valid JSON (no markdown, no explanation, no extra text):\n` +
-    `{"translation":"<${targetName} in native script or Latin>","transliteration":"<Latin romanization>"}\n\n` +
-    `${sourceName} input: "${text.trim()}"`;
+      : ''}${lexHits}${corrWordContext}${masterContext}${wordContext}${dictContext}
+Task: Translate the following ${sourceName} text into ${targetName}.
+Return ONLY valid JSON (no markdown, no explanation, no extra text):
+{"translation":"<${targetName} in native script or Latin>","transliteration":"<Latin romanization>"}
+
+${sourceName} input: "${text.trim()}"`;
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -179,7 +200,8 @@ router.post('/', async (req, res) => {
       const payload = {
         translation: parsed.translation || parsed.transliteration || '',
         transliteration: parsed.transliteration || '',
-        source: 'ai',
+        source: useComposition ? 'word_based' : 'ai',
+        wordCoverage: useComposition ? Math.round(wordCoverage * 100) : undefined,
         lowResource: isLowResource,
       };
       cache.set(cacheKey, payload);

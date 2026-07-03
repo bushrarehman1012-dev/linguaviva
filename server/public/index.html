@@ -413,7 +413,7 @@ async function doTranslate() {
         <div class="output-text ${isRTL ? 'rtl' : ''}">${escHtml(nativeScript)}</div>
         ${showBoth ? `<div style="font-size:15px;color:#6B7280;margin-top:6px;font-style:italic">${escHtml(romanization)}</div>` : ''}
         <div class="output-meta">
-          ${data.source === 'correction' ? '<span class="badge badge-high">✓ Community correction</span>' : data.source === 'verified' ? '<span class="badge badge-high">✓ Dictionary</span>' : data.source === 'google' ? '<span class="badge badge-high">via Google</span>' : '<span class="badge badge-ai">via AI</span>'}
+          ${data.source === 'correction' ? '<span class="badge badge-high">✓ Community correction</span>' : data.source === 'verified' ? '<span class="badge badge-high">✓ Dictionary</span>' : data.source === 'word_based' ? `<span class="badge badge-warn">⚡ Word-based${data.wordCoverage ? ' · ' + data.wordCoverage + '% matched' : ''}</span>` : data.source === 'google' ? '<span class="badge badge-high">via Google</span>' : '<span class="badge badge-ai">via AI</span>'}
           ${isLowRes && data.source !== 'verified' ? '<span class="badge badge-warn">⚠ Low-resource</span>' : ''}
           <button class="speak-btn" onclick="speakTranslation()">🔊 Listen</button>
           ${data.source !== 'verified' ? `<button class="speak-btn" onclick="validateTranslation('${escHtml(text)}', '${targetLang}')">✓ Verify</button>` : ''}
