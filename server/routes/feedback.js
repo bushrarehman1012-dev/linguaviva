@@ -1,6 +1,7 @@
 const express          = require('express');
 const correctionsStore = require('../data/corrections');
 const supabase         = require('../data/supabase');
+const lexicon          = require('../data/lexicon');
 
 const router = express.Router();
 
@@ -28,6 +29,35 @@ async function extractWordCorrections(sourceLang, targetLang, sourcePhrase, targ
   }
 }
 
+function slug(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').substring(0, 120);
+}
+
+// Split a multi-sentence text into useful individual phrases for the contribute queue.
+// Single word/phrase → returned as-is.
+// Multiple sentences → each sentence returned separately.
+function extractPhrases(text) {
+  const clean = text.trim()
+    .replace(/[""'']/g, '')
+    .replace(/\s+/g, ' ');
+
+  // Split on sentence-ending punctuation followed by whitespace or end
+  const sentences = clean
+    .split(/(?<=[.!?])\s+|(?<=[.!?])$/)
+    .map(s => s.replace(/[.!?,;:]+$/, '').trim().toLowerCase())
+    .filter(s => {
+      const words = s.split(/\s+/).filter(w => w.length > 0);
+      return words.length >= 1 && words.length <= 20 && s.length >= 2;
+    });
+
+  // If we got multiple useful sentences, return them
+  if (sentences.length > 1) return sentences;
+
+  // Single phrase (or sentence split didn't help) — return cleaned original
+  const single = clean.replace(/[.!?,;:]+$/, '').trim().toLowerCase();
+  return single.length >= 1 ? [single] : [];
+}
+
 // POST /api/feedback
 router.post('/', async (req, res) => {
   const { text, sourceLang, targetLang, translation, transliteration, verdict, correction } = req.body;
@@ -35,22 +65,41 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'text, sourceLang, targetLang, verdict required' });
   }
 
-  if (verdict === 'bad' && correction?.trim()) {
-    const corrected = correction.trim();
-    await correctionsStore.add(sourceLang, targetLang, text, corrected);
+  if (verdict === 'bad') {
+    const corrected = correction?.trim();
 
-    if (text.trim().split(/\s+/).length > 1) {
-      await extractWordCorrections(sourceLang, targetLang, text, corrected);
+    if (corrected) {
+      // Store the user-supplied correction
+      await correctionsStore.add(sourceLang, targetLang, text, corrected);
+
+      if (text.trim().split(/\s+/).length > 1) {
+        await extractWordCorrections(sourceLang, targetLang, text, corrected);
+      }
+
+      // Bust stale AI cache
+      try {
+        const cache = require('./translate').cache;
+        if (cache) {
+          cache.del(`${sourceLang}|${targetLang}|${text.trim()}`);
+          cache.del(`${sourceLang}|${targetLang}|${text.trim().toLowerCase()}`);
+        }
+      } catch {}
     }
 
-    // Bust stale AI cache
-    try {
-      const cache = require('./translate').cache;
-      if (cache) {
-        cache.del(`${sourceLang}|${targetLang}|${text.trim()}`);
-        cache.del(`${sourceLang}|${targetLang}|${text.trim().toLowerCase()}`);
+    // Always: if the source is English, queue the phrase(s) in the contribute system
+    // so community members can provide the correct translation.
+    if (sourceLang === 'en') {
+      const phrases = extractPhrases(text);
+      for (const phrase of phrases) {
+        const id   = slug(phrase);
+        const type = phrase.includes(' ') ? 'phrase' : 'word';
+        try {
+          await lexicon.addEntry(id, phrase, type, 'user_submitted', 8500);
+        } catch (e) {
+          console.error('[feedback] addEntry error:', e.message);
+        }
       }
-    } catch {}
+    }
   }
 
   // Log to Supabase (non-blocking — don't fail the request if this errors)

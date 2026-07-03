@@ -645,6 +645,9 @@ async function sendFeedback(verdict) {
     if (badBtn)  badBtn.classList.add('bad');
     if (goodBtn) goodBtn.classList.remove('good');
     if (corrBox) corrBox.style.display = 'block';
+    // Send bad feedback immediately — backend will queue this phrase for community translation
+    await postFeedback({ ...lastFeedbackPayload, verdict });
+    if (thanks) thanks.innerHTML = '<div class="correction-box"><span class="thanks" style="color:#92400E">Added to contribute queue — help us get it right!</span></div>';
   }
 }
 

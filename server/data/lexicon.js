@@ -140,6 +140,16 @@ function getCategoryStats(targetLang) {
 
 // ── Async writes ──────────────────────────────────────────────────────────────
 
+async function addEntry(id, canonical_en, type, category, frequency_rank) {
+  if (_entries[id]) return false; // already in cache — nothing to do
+  const row = { id, type, canonical_en, category: category || 'user_submitted', frequency_rank: frequency_rank || 8500 };
+  const { error } = await supabase.from('lexicon_entries').upsert(row, { onConflict: 'id' });
+  if (error) throw new Error('addEntry: ' + error.message);
+  _entries[id] = { ...row, translations: {} };
+  _idx('en', canonical_en, id);
+  return true;
+}
+
 async function addTranslation(entryId, langCode, text, opts = {}) {
   const { roman, verified = false, confidence = 'community', source = 'community_consensus', notes } = opts;
   const row = {
@@ -233,6 +243,7 @@ module.exports = {
   getStats,
   getPending,
   getCategoryStats,
+  addEntry,
   addTranslation,
   recordContribution,
   getContributionCount,
