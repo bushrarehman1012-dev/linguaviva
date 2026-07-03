@@ -104,8 +104,9 @@ function getContext(text, sourceLang, targetLang) {
 
 function wordHits(phrase, sourceLang, targetLang) {
   const STOP = new Set(['the','a','an','is','are','was','were','be','been','i','you','he','she','it','we','they','and','or','but','in','on','at','to','of','for','do','does','did','have','has','can','could','will','would','please']);
-  const clean = phrase.toLowerCase().replace(/[?!.,;:'"]+/g, '');
-  const tokens = clean.split(/\s+/).filter(w => w.length > 0);
+  // Replace punctuation with space (not empty string) so "you?how" splits into ["you","how"]
+  const clean = phrase.toLowerCase().replace(/[?!.,;:'"]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const tokens = clean.split(' ').filter(w => w.length > 0);
   const contentTokens = tokens.filter(w => !STOP.has(w));
 
   const hits = [];
