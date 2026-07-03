@@ -34,6 +34,8 @@ async function initialize() {
 
   for (const e of entries) {
     _entries[e.id] = { ...e, translations: {} };
+    // Index English canonical text so getContext('where are you?', 'en', 'bsk') resolves
+    if (e.canonical_en) _idx('en', e.canonical_en, e.id);
   }
 
   for (const t of translations) {
@@ -56,8 +58,27 @@ function _idx(langCode, text, entryId) {
 
 // ── Synchronous reads (in-memory) ────────────────────────────────────────────
 
+function _slug(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
 function getContext(text, sourceLang, targetLang) {
-  const entryId = _byText[sourceLang]?.[text.toLowerCase().trim()];
+  const clean = text.toLowerCase().trim();
+  // Try exact lookup first
+  let entryId = _byText[sourceLang]?.[clean];
+  // Fallback: strip trailing punctuation ("where are you?" → "where are you")
+  if (!entryId) {
+    const stripped = clean.replace(/[?!.,;:]+$/, '').trim();
+    entryId = _byText[sourceLang]?.[stripped];
+  }
+  // Fallback for English source: look up by slug directly in _entries
+  if (!entryId && sourceLang === 'en') {
+    entryId = _slug(clean);
+    if (!_entries[entryId]) {
+      entryId = _slug(clean.replace(/[?!.,;:]+$/, '').trim());
+      if (!_entries[entryId]) entryId = null;
+    }
+  }
   if (!entryId) return null;
   const t = _entries[entryId]?.translations[targetLang];
   if (!t?.text) return null;
