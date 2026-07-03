@@ -12,6 +12,7 @@ router.get('/queue', (req, res) => {
     .map(e => ({
       id:             e.id,
       english:        e.canonical_en,
+      urdu:           e.canonical_ur || null,
       type:           e.type,
       pos:            e.pos,
       category:       e.category,

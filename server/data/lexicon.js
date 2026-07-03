@@ -46,6 +46,10 @@ async function initialize() {
     if (!_entries[t.entry_id]) continue;
     _entries[t.entry_id].translations[t.lang_code] = t;
     _idx(t.lang_code, t.text, t.entry_id);
+    // Extract Urdu gloss stored in notes during BSK dictionary import (format: "ur: نشان بنانا")
+    if (t.notes && t.notes.startsWith('ur: ') && !_entries[t.entry_id].canonical_ur) {
+      _entries[t.entry_id].canonical_ur = t.notes.slice(4).trim();
+    }
   }
 
   console.log(`[lexicon] loaded ${Object.keys(_entries).length} entries, ${translations.length} translations`);

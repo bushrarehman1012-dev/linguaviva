@@ -186,7 +186,7 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
   <div class="section-sub" id="contrib-subtitle">Help build the Bašh lexicon — add verified translations</div>
 
   <!-- Language picker -->
-  <div class="lang-select-row" style="margin-bottom:16px">
+  <div class="lang-select-row" style="margin-bottom:10px">
     <label>Contributing to:</label>
     <select id="contrib-lang" onchange="onContribLangChange()">
       <option value="bsk">Burushaski</option>
@@ -199,6 +199,13 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
       <option value="wbl">Wakhi</option>
       <option value="trw">Torwali</option>
       <option value="kls">Kalasha</option>
+    </select>
+  </div>
+  <div class="lang-select-row" style="margin-bottom:16px">
+    <label>Source language:</label>
+    <select id="contrib-source-lang" onchange="onContribSourceLangChange()">
+      <option value="en">English</option>
+      <option value="ur">Urdu</option>
     </select>
   </div>
 
@@ -224,7 +231,8 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
       <span class="badge badge-high" id="contrib-pos-badge"></span>
       <span style="font-size:12px;color:#9CA3AF" id="contrib-progress"></span>
     </div>
-    <div id="contrib-english" style="font-size:28px;font-weight:800;color:#111827;margin:12px 0 4px"></div>
+    <div id="contrib-english" style="font-size:28px;font-weight:800;color:#111827;margin:12px 0 2px"></div>
+    <div id="contrib-urdu-hint" style="font-size:13px;color:#6B7280;margin-bottom:4px;display:none"></div>
     <div id="contrib-category" style="font-size:12px;color:#9CA3AF;margin-bottom:18px"></div>
 
     <label id="contrib-translation-label" style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px">
@@ -690,11 +698,12 @@ function escHtml(str) {
 }
 
 // ─── Contribute ──────────────────────────────────────────────────────────────
-let _contribQueue   = [];
-let _contribIdx     = 0;
-let _contribCat     = 'all';
-let _contribLang    = 'bsk';
-let _contribInited  = false;
+let _contribQueue      = [];
+let _contribIdx        = 0;
+let _contribCat        = 'all';
+let _contribLang       = 'bsk';
+let _contribSourceLang = 'en';   // 'en' or 'ur'
+let _contribInited     = false;
 
 function getContribLangName() {
   const lang = LANGUAGES.find(l => l.code === _contribLang);
@@ -708,6 +717,11 @@ function onContribLangChange() {
   _contribInited = false;
   document.getElementById('contrib-cat-select').value = 'all';
   initContribute();
+}
+
+function onContribSourceLangChange() {
+  _contribSourceLang = document.getElementById('contrib-source-lang').value;
+  showContribCard();
 }
 
 async function initContribute() {
@@ -773,10 +787,33 @@ function showContribCard() {
   card.style.display  = 'block';
 
   const entry = _contribQueue[_contribIdx];
-  document.getElementById('contrib-english').textContent  = entry.english;
-  document.getElementById('contrib-pos-badge').textContent = entry.pos || entry.type || 'phrase';
-  document.getElementById('contrib-category').textContent  = (entry.category || '') + (entry.contributions ? `  ·  ${entry.contributions} submission${entry.contributions !== 1 ? 's' : ''} so far` : '');
-  document.getElementById('contrib-progress').textContent  = `${_contribIdx + 1} / ${_contribQueue.length}`;
+
+  // Decide what to show as the source text
+  const useUrdu   = _contribSourceLang === 'ur';
+  const mainText  = (useUrdu && entry.urdu) ? entry.urdu : entry.english;
+  const hintEl    = document.getElementById('contrib-urdu-hint');
+
+  document.getElementById('contrib-english').textContent   = mainText;
+  // When Urdu selected but this entry has no Urdu, show English fallback notice
+  if (useUrdu && !entry.urdu) {
+    hintEl.textContent    = `(no Urdu available — showing English: ${entry.english})`;
+    hintEl.style.display  = 'block';
+  } else if (useUrdu && entry.urdu) {
+    // Show English equivalent as a soft hint below the Urdu
+    hintEl.textContent    = `English: ${entry.english}`;
+    hintEl.style.display  = 'block';
+  } else {
+    hintEl.style.display  = 'none';
+  }
+
+  // Apply RTL direction for Urdu display
+  const mainEl = document.getElementById('contrib-english');
+  mainEl.style.direction  = (useUrdu && entry.urdu) ? 'rtl' : 'ltr';
+  mainEl.style.textAlign  = (useUrdu && entry.urdu) ? 'right' : 'left';
+
+  document.getElementById('contrib-pos-badge').textContent  = entry.pos || entry.type || 'phrase';
+  document.getElementById('contrib-category').textContent   = (entry.category || '') + (entry.contributions ? `  ·  ${entry.contributions} submission${entry.contributions !== 1 ? 's' : ''} so far` : '');
+  document.getElementById('contrib-progress').textContent   = `${_contribIdx + 1} / ${_contribQueue.length}`;
   document.getElementById('contrib-bsk').value   = '';
   document.getElementById('contrib-roman').value = '';
   document.getElementById('contrib-notes').value = '';
