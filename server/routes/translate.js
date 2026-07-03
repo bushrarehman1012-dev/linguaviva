@@ -96,6 +96,17 @@ async function withNastaliq(payload, targetLang, targetName, cKey) {
   return payload;
 }
 
+// Split a compound input into individual sentences so each can be looked up independently.
+// Handles "where are you?How are you?" (no space), "where are you? How are you?", etc.
+// Punctuation is stripped (treated as separators, not content).
+function splitSentences(text) {
+  return text
+    .replace(/([?!.])\s*/g, '$1\n')        // newline after each sentence-ender
+    .split('\n')
+    .map(s => s.replace(/[?!.,;:'"]+$/g, '').trim())  // strip trailing punctuation from each
+    .filter(s => s.length > 1);
+}
+
 const LANG_NOTES = {
   bsk: 'Burushaski is a language isolate of Hunza-Nagar, Gilgit-Baltistan. It has 4 noun classes (hm, hf, x, y) and complex verb morphology. Pronouns: I=je, you=un, he/she=im, we=mi. Copula: is/are (animate)=yini, is/are (location/origin)=yimi. Question words: what=i, where=mini, who=inai, how=man. Verbs: go=yen, come=yas, eat=bats, drink=phuy, say=gus, know=bim. Negative prefix: baa- or b-. Sentence order is SOV. Core vocabulary: water=sil, fire=jun, house=ha, name=ming, your=uny, my=e, good=jan.',
   scl: 'Shina is a Dardic Indo-Aryan language of Gilgit-Baltistan.',
@@ -151,6 +162,40 @@ router.post('/', async (req, res) => {
   const sourceName = LANGUAGE_NAMES[sourceLang] || sourceLang;
   const targetName = LANGUAGE_NAMES[targetLang] || targetLang;
   const isLowResource = LOW_RESOURCE.has(targetLang);
+
+  // PRIORITY 2b: Compound-sentence DB lookup
+  // When input has multiple sentences separated by punctuation (e.g. "where are you?How are you?"),
+  // try each sentence independently in both lexicon and corrections.
+  // Punctuation is treated as a separator, not content — humans type compound queries
+  // without correct spacing all the time. If all parts resolve, combine without Gemini.
+  {
+    const sentences = splitSentences(text.trim());
+    if (sentences.length > 1) {
+      const parts = sentences.map(s => {
+        // Check corrections first (community has highest trust)
+        const corrKey = `${sourceLang}|${targetLang}|${s.toLowerCase().trim()}`;
+        const corr = corrections.getByKey(corrKey);
+        if (corr) return { _tr: corr.translation, roman: corr.translation, source: 'correction' };
+        // Fall back to lexicon
+        const r = lexicon.getContext(s, sourceLang, targetLang);
+        if (r?.isExact) return { _tr: r.translation, roman: r.roman || r.translation, source: 'verified' };
+        return null;
+      });
+
+      if (parts.every(Boolean)) {
+        const sep = NASTALIQ_LANGS.has(targetLang) ? '؟ ' : '? ';
+        const combined = {
+          translation:     parts.map(p => p._tr).join(sep),
+          transliteration: parts.map(p => p.roman).join('? '),
+          source:          parts.some(p => p.source === 'correction') ? 'correction' : 'verified',
+          lowResource:     isLowResource,
+        };
+        const finalPayload = await withNastaliq(combined, targetLang, targetName, cacheKey);
+        cache.set(cacheKey, finalPayload);
+        return res.json(finalPayload);
+      }
+    }
+  }
 
   // === PRIORITY 2: BSK Research Academy dictionary (exact match) ===
   const dictContext = targetLang === 'bsk' ? getDictionaryContext(text.trim(), sourceLang) : '';
