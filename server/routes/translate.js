@@ -146,7 +146,12 @@ router.post('/', async (req, res) => {
 
   // PRIORITY 1: Community corrections (override anything below)
   const userCorrection = corrections.getByKey(cacheKey);
-  if (userCorrection) return res.json(userCorrection);
+  if (userCorrection) {
+    const targetName2 = LANGUAGE_NAMES[targetLang] || targetLang;
+    // Pass cacheKey so the Nastaliq result is cached — Gemini only called once per correction
+    const corrPayload = await withNastaliq(userCorrection, targetLang, targetName2, cacheKey);
+    return res.json(corrPayload);
+  }
 
   const cached = cache.get(cacheKey);
   if (cached) {

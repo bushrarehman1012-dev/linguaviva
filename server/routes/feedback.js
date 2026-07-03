@@ -2,6 +2,29 @@ const express          = require('express');
 const correctionsStore = require('../data/corrections');
 const supabase         = require('../data/supabase');
 const lexicon          = require('../data/lexicon');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+const NASTALIQ_LANGS = new Set(['bsk', 'scl', 'hno', 'mvy', 'khw', 'trw']);
+function isLatinOnly(str) {
+  return str && !/[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/.test(str);
+}
+async function toNastaliq(roman, langName) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await model.generateContent(
+      `Convert this ${langName} text (Latin romanization) to ${langName} in Nastaliq Arabic script.\n` +
+      `Latin: "${roman}"\nReturn ONLY valid JSON: {"nastaliq":"<text>"}\nNo explanation.`
+    );
+    const raw = result.response.text().trim();
+    let p = null;
+    try { p = JSON.parse(raw); } catch {}
+    if (!p) { const m = raw.match(/\{[\s\S]*\}/); if (m) try { p = JSON.parse(m[0]); } catch {} }
+    const n = (p?.nastaliq || '').trim();
+    return (n && !isLatinOnly(n)) ? n : null;
+  } catch { return null; }
+}
 
 const router = express.Router();
 
@@ -69,11 +92,20 @@ router.post('/', async (req, res) => {
     const corrected = correction?.trim();
 
     if (corrected) {
-      // Store the user-supplied correction
-      await correctionsStore.add(sourceLang, targetLang, text, corrected);
+      // For Nastaliq languages: if the user typed Latin romanization, generate and store
+      // the Arabic script version so it's ready without a Gemini call at serve time.
+      let storedCorrection = corrected;
+      if (NASTALIQ_LANGS.has(targetLang) && isLatinOnly(corrected)) {
+        const LANG_NAMES = { bsk:'Burushaski', scl:'Shina', hno:'Hindko', mvy:'Indus Kohistani', khw:'Khowar', trw:'Torwali' };
+        const nastaliq = await toNastaliq(corrected, LANG_NAMES[targetLang] || targetLang);
+        if (nastaliq) storedCorrection = nastaliq;
+      }
+
+      // Store the correction (Nastaliq if converted, Latin if conversion failed/skipped)
+      await correctionsStore.add(sourceLang, targetLang, text, storedCorrection);
 
       if (text.trim().split(/\s+/).length > 1) {
-        await extractWordCorrections(sourceLang, targetLang, text, corrected);
+        await extractWordCorrections(sourceLang, targetLang, text, storedCorrection);
       }
 
       // Bust stale AI cache
