@@ -414,7 +414,7 @@ async function doTranslate() {
     function sourceBadge(src) {
       if (src === 'correction')  return '<span class="badge badge-high">✓ Community correction</span>';
       if (src === 'verified')    return '<span class="badge badge-high">✓ Dictionary</span>';
-      if (src === 'word_based')  return `<span class="badge badge-warn">⚡ Word-based${data.wordCoverage ? ' · ' + data.wordCoverage + '% known' : ''}</span>`;
+      if (src === 'word_based')  return `<span class="badge badge-warn">⚡ Word-based${data.wordCoverage ? ' · ' + Math.min(data.wordCoverage, 100) + '% known' : ''}</span>`;
       if (src === 'google')      return '<span class="badge badge-high">via Google</span>';
       if (src === 'uncertain')   return '<span class="badge badge-low">⚠ Uncertain</span>';
       return '<span class="badge badge-ai">via AI</span>';

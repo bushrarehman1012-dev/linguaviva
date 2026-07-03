@@ -34,8 +34,12 @@ async function initialize() {
 
   for (const e of entries) {
     _entries[e.id] = { ...e, translations: {} };
-    // Index English canonical text so getContext('where are you?', 'en', 'bsk') resolves
-    if (e.canonical_en) _idx('en', e.canonical_en, e.id);
+    if (e.canonical_en) {
+      _idx('en', e.canonical_en, e.id);
+      // Also index without trailing punctuation so "how are you ?" matches "how are you?"
+      const stripped = e.canonical_en.replace(/[?!.,;:]+$/, '').trim();
+      if (stripped !== e.canonical_en) _idx('en', stripped, e.id);
+    }
   }
 
   for (const t of translations) {
@@ -100,23 +104,47 @@ function getContext(text, sourceLang, targetLang) {
 
 function wordHits(phrase, sourceLang, targetLang) {
   const STOP = new Set(['the','a','an','is','are','was','were','be','been','i','you','he','she','it','we','they','and','or','but','in','on','at','to','of','for','do','does','did','have','has','can','could','will','would','please']);
-  const tokens = phrase.toLowerCase().replace(/[?!.,;:'"]+/g, '').split(/\s+/).filter(w => w.length > 0);
+  const clean = phrase.toLowerCase().replace(/[?!.,;:'"]+/g, '');
+  const tokens = clean.split(/\s+/).filter(w => w.length > 0);
   const contentTokens = tokens.filter(w => !STOP.has(w));
-  const hits = [];
-  const seenWords = new Set();
 
-  for (const word of tokens) {
+  const hits = [];
+  const coveredIdx = new Set(); // token indices already matched
+
+  // Phase 1: longest-first N-gram scanning — catches sub-phrases like "how are you"
+  // inside a longer input like "how are you doing today"
+  for (let len = Math.min(tokens.length, 10); len >= 2; len--) {
+    for (let start = 0; start <= tokens.length - len; start++) {
+      const allCovered = Array.from({ length: len }, (_, i) => coveredIdx.has(start + i)).every(Boolean);
+      if (allCovered) continue;
+      const ngram = tokens.slice(start, start + len).join(' ');
+      const entryId = _byText[sourceLang]?.[ngram];
+      const t = entryId && _entries[entryId]?.translations[targetLang];
+      if (t?.text && t.verified) {
+        hits.push({ word: ngram, targetText: t.text, roman: t.roman || t.text, confidence: t.confidence });
+        for (let i = start; i < start + len; i++) coveredIdx.add(i);
+      }
+    }
+  }
+
+  // Phase 2: single-word lookup for any token not already covered by a phrase match
+  const seenWords = new Set();
+  for (let i = 0; i < tokens.length; i++) {
+    if (coveredIdx.has(i)) continue;
+    const word = tokens[i];
     if (seenWords.has(word)) continue;
     seenWords.add(word);
     const entryId = _byText[sourceLang]?.[word];
     const t = entryId && _entries[entryId]?.translations[targetLang];
-    // Only use verified translations as word anchors
     if (t?.text && t.verified) {
       hits.push({ word, targetText: t.text, roman: t.roman || t.text, confidence: t.confidence });
+      coveredIdx.add(i);
     }
   }
 
-  const coverage = contentTokens.length > 0 ? hits.length / contentTokens.length : 0;
+  // Coverage = fraction of content tokens that got matched (by phrase or word)
+  const coveredContent = tokens.reduce((n, tok, i) => n + (!STOP.has(tok) && coveredIdx.has(i) ? 1 : 0), 0);
+  const coverage = contentTokens.length > 0 ? coveredContent / contentTokens.length : 0;
   return { hits, coverage };
 }
 

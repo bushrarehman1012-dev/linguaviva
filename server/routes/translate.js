@@ -259,7 +259,7 @@ ${sourceName} input: "${text.trim()}"`;
         translation:    finalTr,
         transliteration: finalRoman,
         source:         isRefusal ? 'uncertain' : (useComposition ? 'word_based' : 'ai'),
-        wordCoverage:   useComposition ? Math.round(wordCoverage * 100) : undefined,
+        wordCoverage:   useComposition ? Math.min(Math.round(wordCoverage * 100), 100) : undefined,
         lowResource:    isLowResource,
       };
       cache.set(cacheKey, payload);
