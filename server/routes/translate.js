@@ -129,39 +129,42 @@ router.post('/', async (req, res) => {
   const masterContext = (!masterResult?.isExact && masterResult?.context) ? masterResult.context : '';
   const wordContext   = getWordListContext(targetLang, text.trim());
 
-  // For low-resource languages with partial word coverage, use a composition strategy
-  // rather than asking Gemini to translate from scratch. The verified anchors act as
-  // locked building blocks — Gemini handles grammar, word order, and morphology.
-  const useComposition = isLowResource && wordCoverage >= 0.4 && wordHitsList.length >= 1;
+  // Use composition mode when we have ANY verified anchor from our own database —
+  // lexicon word hits OR community corrections. Our DB is always the primary source;
+  // Gemini only fills in what the DB can't cover.
+  const useComposition = isLowResource && (wordHitsList.length >= 1 || corrWordHits.length >= 1);
+
+  // All known anchors combined (lexicon word hits + community corrections)
+  const allAnchors = [
+    ...wordHitsList.map(h => `"${h.word}" → "${h.roman}"`),
+    ...corrWordHits.map(h => `"${h.word}" → "${h.translation}"`),
+  ];
 
   const prompt = useComposition
-    ? `You are a ${targetName} linguistic expert. Your task is to compose a ${targetName} translation using VERIFIED word anchors — you must use these exact forms as-is, because they were verified by native speakers.
+    ? `You are a ${targetName} linguistic expert helping preserve an endangered language.
 
 Language notes: ${langNote}
 
-VERIFIED WORD ANCHORS (use these exact forms, do not alter them):
-${wordHitsList.map(h => `"${h.word}" → "${h.roman}"`).join('\n')}
-${corrWordHits.map(h => `"${h.word}" → "${h.translation}"`).join('\n')}
+VERIFIED WORD ANCHORS from native speakers (use these exact forms — do not alter them):
+${allAnchors.join('\n')}
+${dictContext}${masterContext}${wordContext}
 
-${dictContext}
-${masterContext}
-${wordContext}
+Task: Translate "${text.trim()}" into ${targetName}.
+- Use every anchor above that applies.
+- For words not covered by anchors, use your best linguistic knowledge of ${targetName}.
+- Never refuse or return empty — always provide your best attempt.
+- ${targetName} uses SOV word order. Transliterate using Latin script.
 
-Using these anchors and correct ${targetName} grammar/word order, compose the best possible translation of:
-"${text.trim()}"
+Return ONLY valid JSON (no markdown): {"translation":"<result>","transliteration":"<Latin romanization>"}`
 
-If you don't know a word, use the closest anchor available. Note: ${targetName} uses SOV word order for most sentences.
-Return ONLY valid JSON: {"translation":"<result>","transliteration":"<Latin romanization>"}
-No markdown, no explanation.`
     : `You are a linguistic expert in the regional and endangered languages of Pakistan's KPK and Gilgit-Baltistan.
 ${langNote ? `Language context: ${langNote}\n` : ''}${isLowResource
-      ? `CRITICAL: ${targetName} is a severely low-resource language with almost no AI training data. ` +
-        `Use ONLY the verified vocabulary provided below. ` +
-        `Do NOT guess or invent words. If you cannot translate confidently from the verified sources, ` +
-        `return {"translation":"[not found]","transliteration":""} rather than fabricating output.\n`
+      ? `Note: ${targetName} is a low-resource language. Use the language notes and any context provided. ` +
+        `Always provide your best attempt — even a partial or uncertain translation is more useful than nothing.\n`
       : ''}${lexHits}${corrWordContext}${masterContext}${wordContext}${dictContext}
 Task: Translate the following ${sourceName} text into ${targetName}.
-Return ONLY valid JSON (no markdown, no explanation, no extra text):
+Always return your best attempt. Never return empty or refuse.
+Return ONLY valid JSON (no markdown, no explanation):
 {"translation":"<${targetName} in native script or Latin>","transliteration":"<Latin romanization>"}
 
 ${sourceName} input: "${text.trim()}"`;
@@ -196,13 +199,17 @@ ${sourceName} input: "${text.trim()}"`;
       } catch {}
     }
 
-    if (parsed && (parsed.translation || parsed.transliteration)) {
+    if (parsed) {
+      const tr = (parsed.translation || parsed.transliteration || '').trim();
+      // Gemini sometimes literally returns "[not found]" — treat as uncertain, not empty
+      const isRefusal = !tr || tr === '[not found]' || tr.toLowerCase().includes('not found') || tr === '—';
+
       const payload = {
-        translation: parsed.translation || parsed.transliteration || '',
-        transliteration: parsed.transliteration || '',
-        source: useComposition ? 'word_based' : 'ai',
-        wordCoverage: useComposition ? Math.round(wordCoverage * 100) : undefined,
-        lowResource: isLowResource,
+        translation:    isRefusal ? '' : tr,
+        transliteration: isRefusal ? '' : (parsed.transliteration || '').trim(),
+        source:         isRefusal ? 'uncertain' : (useComposition ? 'word_based' : 'ai'),
+        wordCoverage:   useComposition ? Math.round(wordCoverage * 100) : undefined,
+        lowResource:    isLowResource,
       };
       cache.set(cacheKey, payload);
       return res.json(payload);

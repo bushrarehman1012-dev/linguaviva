@@ -398,41 +398,51 @@ async function doTranslate() {
     const isRTL = lang ? lang.isRTL : false;
     const isLowRes = data.lowResource;
 
-    if (data.translation || data.transliteration) {
-      lastTranslation = data.transliteration || data.translation; // TTS speaks transliteration
-      lastTargetLang = targetLang;
-      lastFeedbackPayload = { text, sourceLang, targetLang, translation: data.translation, transliteration: data.transliteration };
+    // Always set feedback payload — even for empty results so the contribute form works
+    lastFeedbackPayload = { text, sourceLang, targetLang, translation: data.translation || '', transliteration: data.transliteration || '' };
+    lastTranslation = data.transliteration || data.translation || null;
+    lastTargetLang  = targetLang;
 
-      const nativeScript = data.translation || '';
-      const romanization = data.transliteration || '';
+    const nativeScript  = data.translation || '';
+    const romanization  = data.transliteration || '';
+    const hasTranslation = !!nativeScript;
+    const showBoth = romanization && romanization.toLowerCase() !== nativeScript.toLowerCase();
+    const isUncertain = data.source === 'uncertain';
 
-      // For low-resource languages always show both; for Pashto show native + transliteration
-      const showBoth = romanization && romanization.toLowerCase() !== nativeScript.toLowerCase();
-
-      box.innerHTML = `
-        <div class="output-text ${isRTL ? 'rtl' : ''}">${escHtml(nativeScript)}</div>
-        ${showBoth ? `<div style="font-size:15px;color:#6B7280;margin-top:6px;font-style:italic">${escHtml(romanization)}</div>` : ''}
-        <div class="output-meta">
-          ${data.source === 'correction' ? '<span class="badge badge-high">✓ Community correction</span>' : data.source === 'verified' ? '<span class="badge badge-high">✓ Dictionary</span>' : data.source === 'word_based' ? `<span class="badge badge-warn">⚡ Word-based${data.wordCoverage ? ' · ' + data.wordCoverage + '% matched' : ''}</span>` : data.source === 'google' ? '<span class="badge badge-high">via Google</span>' : '<span class="badge badge-ai">via AI</span>'}
-          ${isLowRes && data.source !== 'verified' ? '<span class="badge badge-warn">⚠ Low-resource</span>' : ''}
-          <button class="speak-btn" onclick="speakTranslation()">🔊 Listen</button>
-          ${data.source !== 'verified' ? `<button class="speak-btn" onclick="validateTranslation('${escHtml(text)}', '${targetLang}')">✓ Verify</button>` : ''}
-        </div>
-        <div id="validate-result"></div>
-        <div class="feedback-row">
-          <span class="feedback-label">Was this translation correct?</span>
-          <button class="feedback-btn" id="fb-good" onclick="sendFeedback('good')">👍 Yes</button>
-          <button class="feedback-btn" id="fb-bad"  onclick="sendFeedback('bad')">👎 No</button>
-        </div>
-        <div class="correction-box" id="correction-box">
-          <textarea id="correction-text" placeholder="Enter the correct translation here…"></textarea>
-          <button onclick="submitCorrection()">Submit correction</button>
-        </div>
-        <div id="feedback-thanks"></div>
-      `;
-    } else {
-      box.innerHTML = '<div class="placeholder">No translation found</div>';
+    function sourceBadge(src) {
+      if (src === 'correction')  return '<span class="badge badge-high">✓ Community correction</span>';
+      if (src === 'verified')    return '<span class="badge badge-high">✓ Dictionary</span>';
+      if (src === 'word_based')  return `<span class="badge badge-warn">⚡ Word-based${data.wordCoverage ? ' · ' + data.wordCoverage + '% known' : ''}</span>`;
+      if (src === 'google')      return '<span class="badge badge-high">via Google</span>';
+      if (src === 'uncertain')   return '<span class="badge badge-low">⚠ Uncertain</span>';
+      return '<span class="badge badge-ai">via AI</span>';
     }
+
+    box.innerHTML = `
+      ${hasTranslation
+        ? `<div class="output-text ${isRTL ? 'rtl' : ''}">${escHtml(nativeScript)}</div>
+           ${showBoth ? `<div style="font-size:15px;color:#6B7280;margin-top:6px;font-style:italic">${escHtml(romanization)}</div>` : ''}`
+        : `<div style="color:#92400E;font-size:15px;font-weight:600;padding:8px 0">
+             We don't have a translation yet — be the first to contribute one below!
+           </div>`}
+      <div class="output-meta">
+        ${sourceBadge(data.source)}
+        ${isLowRes && !['verified','correction'].includes(data.source) ? '<span class="badge badge-warn">⚠ Low-resource</span>' : ''}
+        ${hasTranslation && !isUncertain ? `<button class="speak-btn" onclick="speakTranslation()">🔊 Listen</button>` : ''}
+        ${hasTranslation && data.source !== 'verified' ? `<button class="speak-btn" onclick="validateTranslation('${escHtml(text)}', '${targetLang}')">✓ Verify</button>` : ''}
+      </div>
+      <div id="validate-result"></div>
+      <div class="feedback-row">
+        <span class="feedback-label">${hasTranslation ? 'Was this correct?' : 'Know the translation?'}</span>
+        ${hasTranslation ? `<button class="feedback-btn" id="fb-good" onclick="sendFeedback('good')">👍 Yes</button>` : ''}
+        <button class="feedback-btn" id="fb-bad" onclick="sendFeedback('bad')">👎 ${hasTranslation ? 'No' : 'Add correction'}</button>
+      </div>
+      <div class="correction-box" id="correction-box">
+        <textarea id="correction-text" placeholder="Enter the correct translation here…"></textarea>
+        <button onclick="submitCorrection()">Submit</button>
+      </div>
+      <div id="feedback-thanks"></div>
+    `;
   } catch (e) {
     box.innerHTML = '<div style="color:#DC2626;padding:8px">Error: Could not reach server. Is it running?</div>';
   } finally {
