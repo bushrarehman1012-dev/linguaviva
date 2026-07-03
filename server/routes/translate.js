@@ -228,12 +228,13 @@ router.post('/', async (req, res) => {
   // Corrections word-level hits (single-word)
   const corrWordHits = corrections.getWordHits(sourceLang, targetLang, text.trim());
 
-  // Corrections phrase hits — N-gram scan of corrections store for sub-phrases
-  // (handles "how are you where are you" where each half is a known correction)
+  // Corrections phrase hits — N-gram scan of corrections store for sub-phrases.
+  // Returns hits with token position so we can stitch in order, plus a coverage count.
+  // Works regardless of separator: no space, single space, double space, punctuation.
   function correctionPhraseHits(phrase) {
     const clean = phrase.toLowerCase().replace(/[?!.,;:'"]+/g, ' ').replace(/\s+/g, ' ').trim();
     const tokens = clean.split(' ').filter(w => w.length > 0);
-    const hits = [];
+    const hits = [];   // { word, translation, start }
     const covered = new Set();
     for (let len = Math.min(tokens.length, 10); len >= 2; len--) {
       for (let start = 0; start <= tokens.length - len; start++) {
@@ -241,14 +242,32 @@ router.post('/', async (req, res) => {
         const p = tokens.slice(start, start + len).join(' ');
         const corr = corrections.getByKey(`${sourceLang}|${targetLang}|${p}`);
         if (corr) {
-          hits.push({ word: p, translation: corr.translation });
+          hits.push({ word: p, translation: corr.translation, start });
           for (let i = start; i < start + len; i++) covered.add(i);
         }
       }
     }
-    return hits;
+    const allCovered = tokens.length > 0 && tokens.every((_, i) => covered.has(i));
+    return { hits, allCovered, tokenCount: tokens.length };
   }
-  const corrPhraseHits = correctionPhraseHits(text.trim());
+  const { hits: corrPhraseHits, allCovered: phrasesFullyCover } = correctionPhraseHits(text.trim());
+
+  // PRIORITY 2c: If corrections phrases cover EVERY token in the input, stitch in position
+  // order and return immediately — no Gemini needed. Works for any separator (none, single
+  // space, double space, punctuation) because matching is token-level.
+  if (phrasesFullyCover && corrPhraseHits.length > 1) {
+    const ordered  = [...corrPhraseHits].sort((a, b) => a.start - b.start);
+    const stitched = ordered.map(h => h.translation).join(' ');
+    const combined = {
+      translation:     stitched,
+      transliteration: stitched,
+      source:          'correction',
+      lowResource:     isLowResource,
+    };
+    const finalPayload = await withNastaliq(combined, targetLang, targetName, cacheKey);
+    cache.set(cacheKey, finalPayload);
+    return res.json(finalPayload);
+  }
 
   const corrWordContext = (corrWordHits.length || corrPhraseHits.length)
     ? `\nCOMMUNITY-VERIFIED WORDS/PHRASES (use these exact forms):\n` +
