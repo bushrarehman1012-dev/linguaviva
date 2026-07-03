@@ -1,0 +1,402 @@
+english,current_bsk,community_corrected,in_research_academy_dict,verified,correct_form,notes
+what is your name,uny gueek besan bila,,NO,Yes,,
+what is your name (formal),unum ming i?,,NO,,uny gueek besan bila,
+my name is,e ming,,NO,,ja aik,
+nice to meet you,un burus yini,,NO,,un nukuixh khushi manimi,
+how are you,man haleti chi,,NO,,be hal bila,
+i am fine,jas aman,,NO,,je shua ba,
+i am not fine,jas baa aman,,NO,,je shua apa,
+good morning,san burus,,YES,,,
+good night,burus yum,,NO,,,
+good evening,burus,,NO,,,
+good afternoon,burus,,NO,,,
+i love you,e uny huris manis,,NO,,ja uny ka shul echaba,
+i miss you,e uny yad manis,,NO,,ja uny aski duwalila,
+where are you,un amlo yini,,NO,,un amlo ba,
+where are you going,un amlar nichaa,,NO,yes,,
+where are you from,un amlo yimi,,NO,,un amlum ba,
+where is it,amlo bila,,NO,yes,,
+where do you live,un amlo ba dimi,,NO,,un amlo hurusha,
+where is the bathroom,gusal khana amlo yini,,NO,,bathroom amlo bila,
+where is the hospital,hospital amlo yini,,NO,,hospital amlo bila,
+where is the hotel,hotel amlo yini,,NO,,hotel amlo bila,
+where is the market,bazar amlo yini,,NO,,dukaanin amlo bixa,
+where is the mosque,masjid amlo yini,,NO,,majit amlo bila,
+what is this,imi i chi,,NO,,guty besan bila,
+what is that,iye i chi,,NO,,itey besan bila,
+what time is it,baje man beya chi,,NO,,besan khaen manila,
+what is your job,un i manis,,NO,,uny duro besan bila,
+what happened,i chi,,NO,,be manimi,
+what do you want,un i manis,,NO,,besan awaji unar,
+how much,man beya,,NO,,berum,
+how many,man beya,,NO,,beruman,
+how far,man para chi,,NO,,berum mathan,
+how long,man bero chi,,NO,,berum uyum,
+how do you say,un man gus,,NO,,uny belaty sibaa,
+i don't understand,e bimi,,NO,,asulo apalimi,
+i don't know,e bimi,,NO,,jaar lail api,
+do you understand,un bimis chi,,NO,,goslo balimia,
+do you speak english,un inglizi gus chi,,NO,,uny english gharicha,
+i don't speak burushaski,je burushaski baa gus aman,,NO,,je burushaski gharas ayamayaba,
+i am learning burushaski,je burushaski batshis aman,,NO,,ja burushaski gharas heyaba,
+speak slowly,ama ama gus,,NO,,thala gharay,
+speak slowly please,meherbani ama ama gus,,NO,,thala gharay,
+please repeat,meherbani thikane gus,,NO,,hikkeh,
+can you write it,un likhim chi,,NO,,un girminas gomayba?,
+thank you,shukriya,,NO,,Juu gor,
+thank you very much,shukriya heto,,NO,,butan juu gor,
+you are welcome,koi bat nahi,,NO,,bes k masla api,
+please,meherbani,,NO,,,
+sorry,maafi,,NO,,bakhshish ati,
+excuse me,maafi,,NO,,,No translation in burushaski
+no problem,koi bat nahi,,NO,,masla api,
+it's okay,thik chi,,NO,,shua bila,
+help me,e madad man,,NO,,,
+i need help,e madad manis,,NO,,,
+help,madad,,NO,,,
+i am lost,e yum chi,,NO,,,
+call the police,police tsal,,NO,,police r qaw eti,
+i need a doctor,e doctor manis,,NO,,jar doctor awaji,
+i am sick,e dardman aman,,NO,,je bemar ba,
+call an ambulance,ambulance tsal,,NO,,ambulance r qaw eti,
+there is a fire,jun chi,,NO,,etalay phuan bila,
+i want water,e sil manis,,NO,,jar sil awaji,
+i am hungry,e chan manis,,NO,,je chaminay ba,
+i am thirsty,e sil manis,,NO,,ja buk yuebi,
+i am tired,e thak aman,,NO,,je awaraba,
+i am happy,je khushi aman,,NO,,je khush ba,
+i am sad,je gham aman,,NO,,je tang ba,
+i am cold,je halting aman,,NO,,je thatinay amanaba,
+i am hot,je garam aman,,NO,,je garurum amanaba,
+i am here,je gu yini,,NO,,je kholy ba,
+i am ready,je tayyar aman,,NO,,je tayyar ba,
+how much does this cost,imi man beya chi,,NO,,gusey berumar bi,
+i want to buy this,e imi las manis,,NO,,ja gusey yanas bila,
+that is expensive,iye mahanga chi,,NO,,ete mehanga bila,
+that is cheap,iye sasta chi,,NO,,ete sasta bila,
+give me that,iye bar,,NO,,esay jaar jo,
+give me water,sil bar,,NO,,sil achi,
+i want food,e chan manis,,NO,,jar shapik awaji,
+the bill please,hisab bar meherbani,,NO,,bill achen,
+the food is delicious,chan burus jan chi,,NO,,shapik but uyam bi,
+i am vegetarian,je maas baa bats aman,,NO,,ja khali hoi sheyas enay ba,
+i am full,e chan hetes,,NO,,ja pura amanam,
+i want tea,e chai manis,,NO,,jar chai awaji,
+i want bread,e murum manis,,NO,,jar phitti awaji,
+go straight,jas jas yen,,NO,,sida ni,
+turn left,kath shaw,,NO,,gawpa ni,
+turn right,jas shaw,,NO,,dowpa ni,
+stop here,gu waro,,NO,,kholey xhat manay,
+wait here,gu bat,,NO,,kholey xhaat manay,
+yes it is,han yini,,NO,,awa etay bila,
+no it is not,baa yini,,NO,,beya etay api,
+i think so,e iye manis,,NO,,awa ja k etay samba bila,
+i don't think so,e iye baa manis,,NO,,beya ja etay samba aapi,
+maybe,shayad,,NO,,ama awa,
+of course,zaroor,,NO,,,
+i am a student,je talim manis aman,,NO,,je shagiro an ba,
+i am a teacher,je ustad aman,,NO,,je ustad an ba,
+i am a tourist,je tourist aman,,NO,,,
+i am from pakistan,je pakistan mini yimi,,NO,,je pakistan xum ba,
+i live in,je gu ba dimi,,NO,,je hurushaba ,"the word after ""in"" comes at the start of the sentence "
+i work in,je gu yene aman,,NO,,ja duro echaba,"the word after ""in"" comes at the start of the sentence "
+how old are you,un man sal aman,,YES,,un berum saal e ba,
+i am years old,je sal aman,,YES,,je akhurum saal e ba,
+what day is today,eyo man din chi,,NO,,khoulto besan gunx bila,
+see you tomorrow,hales yini,,NO,,jimaly guyesham,
+see you later,phale yini,,NO,,mushaty guyesham,
+i will come tomorrow,je hales yas aman,,NO,,je jimaly xuxham,
+i came yesterday,je phaali yasi,,NO,,je sabur dayabayam,
+what is the time,baje man beya chi,,NO,,khaen besan manila,
+"water","sil","","NO","","",""
+"fire","jun","","NO","","",""
+"house","ha","","NO","","",""
+"man","hir","","NO","","",""
+"woman","gus","","NO","","",""
+"child","hiles","","NO","","",""
+"sun","gar","","NO","","",""
+"moon","thagam","","NO","","",""
+"yes","han","","NO","","",""
+"no","baa","","NO","","",""
+"food","chan","","NO","","",""
+"bread","murum","","NO","","",""
+"milk","bis","","NO","","",""
+"meat","tsi","","NO","","",""
+"fish","chhal","","NO","","",""
+"tree","yalting","","NO","","",""
+"stone","thap","","NO","","",""
+"road","bar","","NO","","",""
+"village","bas","","NO","","",""
+"father","atat","","NO","","",""
+"mother","matat","","NO","","",""
+"brother","baye","","NO","","",""
+"sister","dadas","","NO","","",""
+"one","hen","","NO","","",""
+"two","altan","","NO","","",""
+"three","iski","","NO","","",""
+"four","walto","","NO","","",""
+"five","tsundo","","NO","","",""
+"good","jan","","NO","","",""
+"bad","kharab","","NO","","",""
+"big","guzur","","NO","","",""
+"small","hurum","","NO","","",""
+"white","gushum","","NO","","",""
+"black","gushkurum","","NO","","",""
+"red","dasum","","NO","","",""
+"hot","garam","","NO","","",""
+"cold","halting","","NO","","",""
+"new","nawa","","NO","","",""
+"old","purano","","NO","","",""
+"come","yas","","NO","","",""
+"go","yen","","NO","","",""
+"cook / prepare food","dirás","","YES","","",""
+"drink","phuy","","NO","","",""
+"sleep","muts","","NO","","",""
+"name","ming","","NO","","",""
+"your","uny","","NO","","",""
+"my","e","","NO","","",""
+"what","i","","NO","","",""
+"where","mini","","NO","","",""
+"who","inai","","NO","","",""
+"love","huris","","NO","","",""
+"friend","doost","","NO","","",""
+"thank you","shukriya","","NO","","",""
+"dog","huk","","NO","","",""
+"bird","dirilik","","NO","","",""
+"goat","gural","","NO","","",""
+"mountain","ghur","","NO","","",""
+"river","hun","","NO","","",""
+"sky","asumaan","","NO","","",""
+"heart","tsil","","NO","","",""
+"eye","mic","","NO","","",""
+"hand","gut","","NO","","",""
+"head","muc","","NO","","",""
+"mouth","mu","","NO","","",""
+"ear","dul","","YES","","",""
+"day","sun","","YES","","",""
+"night","yum","","NO","","",""
+"today","eyo","","NO","","",""
+"tomorrow","hales","","NO","","",""
+"hello","salaam","","YES","","",""
+"goodbye","khuda hafiz","","NO","","",""
+"where are you","un mini yini","","NO","","",""
+"what is your name","uny gueek besan bila","","NO","","",""
+"how are you","man haleti chi","","NO","","",""
+"i am fine","jas aman","","NO","","",""
+"i don't understand","e bimi","","NO","","",""
+"speak slowly","ama ama gus","","NO","","",""
+"help me","e madad man","","NO","","",""
+"i am hungry","e chan manis","","NO","","",""
+"i want water","e sil manis","","NO","","",""
+"what is this","imi i chi","","NO","","",""
+"how much","imi man beya chi","","NO","","",""
+"i am sick","e dardman aman","","NO","","",""
+i,je,,NO,,je,
+you,un,,NO,,un,
+he,im,,NO,,enay,
+she,im,,NO,,enay,
+we,mi,,NO,,mi,
+they,iye,,NO,,uwey,
+this,imi,,NO,,guty,
+that,iye,,NO,,etay,
+here,gu,,NO,,kholy,
+there,yar,,NO,,elay,
+what,i,,NO,,besan,
+where,amlo,amlo,yes,,,
+who,inai,,NO,,amin,
+when,imani,,NO,,beshal,
+why,imani,,NO,,bes ,
+how,man,,NO,,belaty,
+which,mani,,NO,,amis,
+yes,han,,NO,,awa,
+no,baa,,NO,,beya,
+not,baa,,NO,,api,
+and,je,,NO,,dah,
+or,ya,,NO,,ya,
+come,yas,,NO,,xu,
+go,yen,,NO,,ni,
+eat,bats,,NO,,shi,
+drink,phuy,,NO,,menay,
+sleep,muts,,NO,,goyan,
+see,dit,,NO,,bary,
+hear,khal,,NO,,dukoyal,
+say,gus,,NO,,ghary,
+know,bim,,NO,,hen,
+want,man,,NO,,awaji,
+give,bar,,NO,,jo,"translation for ""give me"", no translation for give alone"
+take,las,,NO,,chu,
+do,man,,NO,,eti,
+make,man,,NO,,desman,
+have,yimi,,NO,,,
+be,yini,,NO,,,
+sit,bat,,NO,,,
+stand,muts,,NO,,,
+run,yen,,NO,,,
+walk,yen,,NO,,,
+speak,gus,,NO,,,
+ask,phus,,NO,,,
+answer,jawab,,NO,,,
+open,phat,,NO,,,
+close,ghat,,NO,,,
+buy,las,,NO,,,
+sell,bar,,NO,,,
+bring,yas,,NO,,,
+send,yen,,NO,,,
+write,likhim,,NO,,,
+read,waachim,,NO,,,
+learn,batshim,,NO,,,
+water,sil,,NO,,,
+fire,jun,,NO,,,
+earth,yar,,NO,,,
+stone,thap,,NO,,,
+tree,yalting,,NO,,,
+mountain,ghur,,NO,,,
+river,hun,,NO,,,
+sky,asumaan,,NO,,,
+sun,gar,,NO,,,
+moon,thagam,,NO,,,
+star,sitara,,NO,,,
+rain,balt,,NO,,,
+snow,gung,,NO,,,
+wind,bat,,NO,,,
+ice,drangs,,NO,,,
+flower,gul,,NO,,,
+grass,gaz,,NO,,,
+forest,yalting,,NO,,,
+lake,hun,,NO,,,
+sea,darya,,NO,,,
+dog,huk,,NO,,,
+cat,mushuk,,NO,,,
+bird,dirilik,,NO,,,
+goat,gural,,NO,,,
+cow,yal,,NO,,,
+horse,haywan,,NO,,,
+sheep,mal,,NO,,,
+wolf,buri,,NO,,,
+bear,barats,,NO,,,
+eagle,dirilik,,NO,,,
+fish,chhal,,NO,,,
+snake,birin,,NO,,,
+food,chan,,NO,,,
+bread,murum,,NO,,,
+milk,bis,,NO,,,
+meat,tsi,,NO,,,
+rice,chawal,,NO,,,
+salt,tshum,,NO,,,
+sugar,shirin,,NO,,,
+butter,dimi,,NO,,,
+oil,roghan,,NO,,,
+tea,chai,,NO,,,
+fruit,mewa,,NO,,,
+vegetable,sabzi,,NO,,,
+egg,yum,,NO,,,
+honey,bahal,,NO,,,
+house,ha,,NO,,,
+door,dar,,YES,,,
+window,gap,,NO,,,
+road,bar,,NO,,,
+village,bas,,NO,,,
+room,kana,,NO,,,
+bed,bistar,,NO,,,
+table,mez,,NO,,,
+chair,kursi,,NO,,,
+book,kitab,,NO,,,
+father,atat,,NO,,,
+mother,matat,,NO,,,
+brother,baye,,NO,,,
+sister,dadas,,NO,,,
+son,hiles,,NO,,,
+daughter,ginikuts,,NO,,,
+husband,bari,,NO,,,
+wife,gus,,NO,,,
+grandfather,mamat,,NO,,,
+grandmother,nani,,NO,,,
+child,hiles,,NO,,,
+family,khandan,,NO,,,
+friend,doost,,NO,,,
+man,hir,,NO,,,
+woman,gus,,NO,,,
+person,hir,,NO,,,
+eye,mic,,NO,,,
+ear,dul,,YES,,,
+nose,shum,,NO,,,
+mouth,mu,,NO,,,
+hand,gut,,NO,,,
+head,muc,,NO,,,
+heart,tsil,,NO,,,
+leg,pay,,NO,,,
+foot,pay,,NO,,,
+arm,gut,,NO,,,
+finger,gut,,NO,,,
+tooth,bilin,,NO,,,
+hair,bal,,NO,,,
+face,yus,,NO,,,
+back,put,,NO,,,
+one,hen,,NO,,,
+two,altan,,NO,,,
+three,iski,,NO,,,
+four,walto,,NO,,,
+five,tsundo,,NO,,,
+six,mishindo,,NO,,,
+seven,talo,,NO,,,
+eight,altambo,,NO,,,
+nine,huntso,,NO,,,
+ten,tormo,,NO,,,
+twenty,altormo,,NO,,,
+hundred,tha,,NO,,,
+thousand,haazar,,NO,,,
+good,jan,,NO,,,
+bad,kharab,,NO,,,
+big,guzur,,NO,,,
+small,hurum,,NO,,,
+white,gushum,,NO,,,
+black,gushkurum,,NO,,,
+red,dasum,,NO,,,
+green,sabz,,NO,,,
+blue,nila,,NO,,,
+hot,garam,,NO,,,
+cold,halting,,NO,,,
+new,nawa,,NO,,,
+old,purano,,NO,,,
+beautiful,gushum,,NO,,,
+fast,tez,,NO,,,
+slow,ama,,NO,,,
+far,para,,NO,,,
+near,phuri,,NO,,,
+right,jas,,NO,,,
+wrong,galat,,NO,,,
+easy,asan,,NO,,,
+hard,mushkil,,NO,,,
+day,sun,,YES,,,
+night,yum,,NO,,,
+today,eyo,,NO,,,
+tomorrow,hales,,NO,,,
+yesterday,phaali,,NO,,,
+morning,san,,YES,,,
+evening,burus,,NO,,,
+year,sal,,YES,,,
+month,maah,,NO,,,
+week,hafta,,NO,,,
+hour,ghanta,,NO,,,
+minute,minute,,NO,,,
+now,iya,,NO,,,
+later,phale,,NO,,,
+hello,salaam,salaam,YES,,,
+goodbye,khuda hafiz,,NO,,,
+name,ming,,NO,,,
+language,baÃÂ¡h,,NO,,,
+your,uny,,NO,,,
+my,e,,NO,,,
+love,huris,,NO,,,
+up,hulo,,NO,,,
+down,shato,,NO,,,
+left,kath,,NO,,,
+inside,daqhl,,NO,,,
+outside,bara,,NO,,,
+first,hen,,NO,,,
+last,akhar,,NO,,,
+give me,,,,,jo,
+give her,,,,,mu,
+give them,,,,,uo,
+give him,,,,,yu,
+give us,,,,,meiv,
