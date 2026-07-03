@@ -81,7 +81,8 @@ function getContext(text, sourceLang, targetLang) {
   }
   if (!entryId) return null;
   const t = _entries[entryId]?.translations[targetLang];
-  if (!t?.text) return null;
+  // Only serve translations that have been explicitly verified — never guess with unverified data
+  if (!t?.text || !t.verified) return null;
   return { isExact: true, translation: t.text, roman: t.roman, confidence: t.confidence, source: t.source };
 }
 
