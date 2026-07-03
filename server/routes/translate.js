@@ -62,8 +62,9 @@ async function romanToNastaliq(model, roman, langName) {
   try {
     const result = await model.generateContent(
       `You are a ${langName} script expert. Convert this ${langName} text (in Latin romanization) to ${langName} written in Nastaliq Arabic script as used in Pakistan.\n` +
+      `Preserve all sentence structure and punctuation — convert ? to ؟ and ! to ! where appropriate.\n` +
       `Latin: "${roman}"\n` +
-      `Return ONLY valid JSON: {"nastaliq":"<Nastaliq text>"}\nNo explanation, no markdown.`
+      `Return ONLY valid JSON: {"nastaliq":"<full Nastaliq text with punctuation>"}\nNo explanation, no markdown.`
     );
     const raw = result.response.text().trim();
     let p = null;
@@ -188,9 +189,11 @@ router.post('/', async (req, res) => {
       });
 
       if (parts.every(Boolean)) {
-        const sep = NASTALIQ_LANGS.has(targetLang) ? '؟ ' : '? ';
         const combined = {
-          translation:     parts.map(p => p._tr).join(sep),
+          // Always join with plain '? ' — if the parts are Latin, withNastaliq will convert
+          // the whole string and Gemini will produce '؟' naturally in the Arabic output.
+          // Using '؟' here would trick isLatinOnly() into skipping the conversion.
+          translation:     parts.map(p => p._tr).join('? '),
           transliteration: parts.map(p => p.roman).join('? '),
           source:          parts.some(p => p.source === 'correction') ? 'correction' : 'verified',
           lowResource:     isLowResource,

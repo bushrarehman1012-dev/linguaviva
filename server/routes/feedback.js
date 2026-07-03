@@ -14,8 +14,9 @@ async function toNastaliq(roman, langName) {
   try {
     const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent(
-      `Convert this ${langName} text (Latin romanization) to ${langName} in Nastaliq Arabic script.\n` +
-      `Latin: "${roman}"\nReturn ONLY valid JSON: {"nastaliq":"<text>"}\nNo explanation.`
+      `Convert this ${langName} text (Latin romanization) to ${langName} in Nastaliq Arabic script as used in Pakistan.\n` +
+      `Preserve all sentence structure and punctuation — convert ? to ؟ where appropriate.\n` +
+      `Latin: "${roman}"\nReturn ONLY valid JSON: {"nastaliq":"<full Nastaliq text with punctuation>"}\nNo explanation.`
     );
     const raw = result.response.text().trim();
     let p = null;
