@@ -74,6 +74,28 @@ async function romanToNastaliq(model, roman, langName) {
   } catch { return null; }
 }
 
+// Apply Nastaliq conversion to any payload whose translation is still Latin,
+// for languages that should display in Arabic script. Updates the cache so the
+// converted version is served on subsequent hits without another Gemini call.
+async function withNastaliq(payload, targetLang, targetName, cKey) {
+  if (!NASTALIQ_LANGS.has(targetLang) || !payload.translation || !isLatinOnly(payload.translation)) {
+    return payload;
+  }
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return payload;
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const nastaliq = await romanToNastaliq(model, payload.translation, targetName);
+    if (nastaliq) {
+      const updated = { ...payload, translation: nastaliq, transliteration: payload.transliteration || payload.translation };
+      if (cKey) cache.set(cKey, updated);
+      return updated;
+    }
+  } catch {}
+  return payload;
+}
+
 const LANG_NOTES = {
   bsk: 'Burushaski is a language isolate of Hunza-Nagar, Gilgit-Baltistan. It has 4 noun classes (hm, hf, x, y) and complex verb morphology. Pronouns: I=je, you=un, he/she=im, we=mi. Copula: is/are (animate)=yini, is/are (location/origin)=yimi. Question words: what=i, where=mini, who=inai, how=man. Verbs: go=yen, come=yas, eat=bats, drink=phuy, say=gus, know=bim. Negative prefix: baa- or b-. Sentence order is SOV. Core vocabulary: water=sil, fire=jun, house=ha, name=ming, your=uny, my=e, good=jan.',
   scl: 'Shina is a Dardic Indo-Aryan language of Gilgit-Baltistan.',
@@ -101,7 +123,9 @@ router.post('/', async (req, res) => {
   // PRIORITY 0: Lexicon exact match — native-speaker verified, highest confidence
   const lexResult = lexicon.getContext(text.trim(), sourceLang, targetLang);
   if (lexResult?.isExact) {
-    const payload = { translation: lexResult.translation, transliteration: lexResult.roman || lexResult.translation, source: 'verified', lowResource: LOW_RESOURCE.has(targetLang) };
+    const targetName0 = LANGUAGE_NAMES[targetLang] || targetLang;
+    let payload = { translation: lexResult.translation, transliteration: lexResult.roman || lexResult.translation, source: 'verified', lowResource: LOW_RESOURCE.has(targetLang) };
+    payload = await withNastaliq(payload, targetLang, targetName0, cacheKey);
     cache.set(cacheKey, payload);
     return res.json(payload);
   }
@@ -114,7 +138,12 @@ router.post('/', async (req, res) => {
   if (userCorrection) return res.json(userCorrection);
 
   const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, source: 'ai_cached' });
+  if (cached) {
+    const targetName1 = LANGUAGE_NAMES[targetLang] || targetLang;
+    let cachedPayload = { ...cached, source: 'ai_cached' };
+    cachedPayload = await withNastaliq(cachedPayload, targetLang, targetName1, cacheKey);
+    return res.json(cachedPayload);
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'AI service not configured', source: 'none' });
@@ -129,7 +158,8 @@ router.post('/', async (req, res) => {
     const match = dictContext.match(/"[^"]*" = "([^"]*)"/);
     if (match) {
       const verified = match[1];
-      const payload = { translation: verified, transliteration: verified, source: 'verified', lowResource: isLowResource };
+      let payload = { translation: verified, transliteration: verified, source: 'verified', lowResource: isLowResource };
+      payload = await withNastaliq(payload, targetLang, targetName, cacheKey);
       cache.set(cacheKey, payload);
       return res.json(payload);
     }
@@ -169,21 +199,29 @@ router.post('/', async (req, res) => {
     ? '"translation" MUST be in Nastaliq Arabic script (RTL). "transliteration" MUST be in Latin romanization.'
     : `"translation" in ${targetName} native script (or Latin if no standard script). "transliteration" in Latin romanization.`;
 
+  // Summary of what we know for the composition prompt
+  const knownCount  = allAnchors.length;
+  const coverage100 = Math.min(Math.round(wordCoverage * 100), 100);
+
   const prompt = useComposition
     ? `You are a ${targetName} linguistic expert helping preserve an endangered language.
 
 Language notes: ${langNote}
 
-VERIFIED WORD ANCHORS from native speakers (use these exact forms — do not alter them):
+We know ${knownCount} word(s) in this sentence (${coverage100}% coverage). Use the verified anchors below as locked building blocks and fill in the rest using your knowledge of ${targetName} grammar, morphology, and word order to produce the most accurate possible translation of the full sentence.
+
+VERIFIED WORD/PHRASE ANCHORS — use these exact forms, do not alter them:
 ${allAnchors.join('\n')}
 ${dictContext}${masterContext}${wordContext}
+Sentence to translate: "${text.trim()}"
 
-Task: Translate "${text.trim()}" into ${targetName}.
-- Use every anchor above that applies.
-- For words not covered by anchors, use your best linguistic knowledge of ${targetName}.
-- Never refuse or return empty — always provide your best attempt.
-- ${targetName} follows SOV word order.
-- ${scriptNote}
+Instructions:
+1. Identify the sentence structure (subject, verb, object, question type, tense).
+2. Place anchored words in the correct ${targetName} positions (SOV order).
+3. For any word not in the anchors, use your best linguistic knowledge of ${targetName}.
+4. Produce a complete, natural-sounding sentence — not just a word list.
+5. Never refuse. If uncertain, give your best attempt.
+6. ${scriptNote}
 
 Return ONLY valid JSON (no markdown): {"translation":"<native/Nastaliq script>","transliteration":"<Latin romanization>"}`
 
@@ -193,6 +231,7 @@ ${langNote ? `Language context: ${langNote}\n` : ''}${isLowResource
         `Always provide your best attempt — even a partial or uncertain translation is more useful than nothing.\n`
       : ''}${lexHits}${corrWordContext}${masterContext}${wordContext}${dictContext}
 Task: Translate the following ${sourceName} text into ${targetName}.
+Assess the sentence structure and meaning, then give the most accurate translation you can.
 Always return your best attempt. Never return empty or refuse.
 ${scriptNote}
 Return ONLY valid JSON (no markdown, no explanation):
@@ -242,26 +281,17 @@ ${sourceName} input: "${text.trim()}"`;
       // Gemini sometimes literally returns "[not found]" — treat as uncertain, not empty
       const isRefusal = !tr || tr === '[not found]' || tr.toLowerCase().includes('not found') || tr === '—';
 
-      let finalTr    = isRefusal ? '' : tr;
-      let finalRoman = isRefusal ? '' : roman;
+      const finalTr    = isRefusal ? '' : tr;
+      const finalRoman = isRefusal ? '' : roman;
 
-      // For Nastaliq languages: if Gemini returned Latin in the translation field, convert to Arabic script.
-      // Keep Latin as the romanization and use the new Nastaliq as the main translation.
-      if (!isRefusal && needsNastaliq && isLatinOnly(finalTr)) {
-        const nastaliq = await romanToNastaliq(model, finalTr, targetName);
-        if (nastaliq) {
-          finalRoman = finalTr;   // the Latin was the romanization all along
-          finalTr    = nastaliq;  // the Nastaliq is now the main translation
-        }
-      }
-
-      const payload = {
-        translation:    finalTr,
+      let payload = {
+        translation:     finalTr,
         transliteration: finalRoman,
-        source:         isRefusal ? 'uncertain' : (useComposition ? 'word_based' : 'ai'),
-        wordCoverage:   useComposition ? Math.min(Math.round(wordCoverage * 100), 100) : undefined,
-        lowResource:    isLowResource,
+        source:          isRefusal ? 'uncertain' : (useComposition ? 'word_based' : 'ai'),
+        wordCoverage:    useComposition ? Math.min(Math.round(wordCoverage * 100), 100) : undefined,
+        lowResource:     isLowResource,
       };
+      payload = await withNastaliq(payload, targetLang, targetName, cacheKey);
       cache.set(cacheKey, payload);
       return res.json(payload);
     }
