@@ -50,6 +50,30 @@ const LANGUAGE_NAMES = {
 
 const LOW_RESOURCE = new Set(['bsk', 'scl', 'mvy', 'khw', 'bft', 'wbl', 'trw', 'kls']);
 
+// Languages that should display in Nastaliq Arabic script (RTL) but often return Latin from Gemini
+const NASTALIQ_LANGS = new Set(['bsk', 'scl', 'hno', 'mvy', 'khw', 'trw']);
+// ps/ur already return Nastaliq; kls is Latin-only by design; wbl is Latin/Cyrillic; bft is Tibetan
+
+function isLatinOnly(str) {
+  return str && !/[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/.test(str);
+}
+
+async function romanToNastaliq(model, roman, langName) {
+  try {
+    const result = await model.generateContent(
+      `You are a ${langName} script expert. Convert this ${langName} text (in Latin romanization) to ${langName} written in Nastaliq Arabic script as used in Pakistan.\n` +
+      `Latin: "${roman}"\n` +
+      `Return ONLY valid JSON: {"nastaliq":"<Nastaliq text>"}\nNo explanation, no markdown.`
+    );
+    const raw = result.response.text().trim();
+    let p = null;
+    try { p = JSON.parse(raw); } catch {}
+    if (!p) { const m = raw.match(/\{[\s\S]*\}/); if (m) try { p = JSON.parse(m[0]); } catch {} }
+    const n = (p?.nastaliq || '').trim();
+    return (n && !isLatinOnly(n)) ? n : null;
+  } catch { return null; }
+}
+
 const LANG_NOTES = {
   bsk: 'Burushaski is a language isolate of Hunza-Nagar, Gilgit-Baltistan. It has 4 noun classes (hm, hf, x, y) and complex verb morphology. Pronouns: I=je, you=un, he/she=im, we=mi. Copula: is/are (animate)=yini, is/are (location/origin)=yimi. Question words: what=i, where=mini, who=inai, how=man. Verbs: go=yen, come=yas, eat=bats, drink=phuy, say=gus, know=bim. Negative prefix: baa- or b-. Sentence order is SOV. Core vocabulary: water=sil, fire=jun, house=ha, name=ming, your=uny, my=e, good=jan.',
   scl: 'Shina is a Dardic Indo-Aryan language of Gilgit-Baltistan.',
@@ -140,6 +164,11 @@ router.post('/', async (req, res) => {
     ...corrWordHits.map(h => `"${h.word}" → "${h.translation}"`),
   ];
 
+  const needsNastaliq = NASTALIQ_LANGS.has(targetLang);
+  const scriptNote = needsNastaliq
+    ? '"translation" MUST be in Nastaliq Arabic script (RTL). "transliteration" MUST be in Latin romanization.'
+    : `"translation" in ${targetName} native script (or Latin if no standard script). "transliteration" in Latin romanization.`;
+
   const prompt = useComposition
     ? `You are a ${targetName} linguistic expert helping preserve an endangered language.
 
@@ -153,9 +182,10 @@ Task: Translate "${text.trim()}" into ${targetName}.
 - Use every anchor above that applies.
 - For words not covered by anchors, use your best linguistic knowledge of ${targetName}.
 - Never refuse or return empty — always provide your best attempt.
-- ${targetName} uses SOV word order. Transliterate using Latin script.
+- ${targetName} follows SOV word order.
+- ${scriptNote}
 
-Return ONLY valid JSON (no markdown): {"translation":"<result>","transliteration":"<Latin romanization>"}`
+Return ONLY valid JSON (no markdown): {"translation":"<native/Nastaliq script>","transliteration":"<Latin romanization>"}`
 
     : `You are a linguistic expert in the regional and endangered languages of Pakistan's KPK and Gilgit-Baltistan.
 ${langNote ? `Language context: ${langNote}\n` : ''}${isLowResource
@@ -164,8 +194,9 @@ ${langNote ? `Language context: ${langNote}\n` : ''}${isLowResource
       : ''}${lexHits}${corrWordContext}${masterContext}${wordContext}${dictContext}
 Task: Translate the following ${sourceName} text into ${targetName}.
 Always return your best attempt. Never return empty or refuse.
+${scriptNote}
 Return ONLY valid JSON (no markdown, no explanation):
-{"translation":"<${targetName} in native script or Latin>","transliteration":"<Latin romanization>"}
+{"translation":"<native/Nastaliq script>","transliteration":"<Latin romanization>"}
 
 ${sourceName} input: "${text.trim()}"`;
 
@@ -211,9 +242,22 @@ ${sourceName} input: "${text.trim()}"`;
       // Gemini sometimes literally returns "[not found]" — treat as uncertain, not empty
       const isRefusal = !tr || tr === '[not found]' || tr.toLowerCase().includes('not found') || tr === '—';
 
+      let finalTr    = isRefusal ? '' : tr;
+      let finalRoman = isRefusal ? '' : roman;
+
+      // For Nastaliq languages: if Gemini returned Latin in the translation field, convert to Arabic script.
+      // Keep Latin as the romanization and use the new Nastaliq as the main translation.
+      if (!isRefusal && needsNastaliq && isLatinOnly(finalTr)) {
+        const nastaliq = await romanToNastaliq(model, finalTr, targetName);
+        if (nastaliq) {
+          finalRoman = finalTr;   // the Latin was the romanization all along
+          finalTr    = nastaliq;  // the Nastaliq is now the main translation
+        }
+      }
+
       const payload = {
-        translation:    isRefusal ? '' : tr,
-        transliteration: isRefusal ? '' : roman,
+        translation:    finalTr,
+        transliteration: finalRoman,
         source:         isRefusal ? 'uncertain' : (useComposition ? 'word_based' : 'ai'),
         wordCoverage:   useComposition ? Math.round(wordCoverage * 100) : undefined,
         lowResource:    isLowResource,
