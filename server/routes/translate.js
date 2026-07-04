@@ -189,10 +189,19 @@ router.post('/', async (req, res) => {
   const userCorrection = corrections.getByKey(cacheKey);
   if (userCorrection) {
     const targetName2 = LANGUAGE_NAMES[targetLang] || targetLang;
-    // getByKey now returns { translation, transliteration, source } — transliteration is the roman form.
-    // withNastaliq converts to Nastaliq script if translation is still Latin.
     let corrPayload = { ...userCorrection, lowResource: LOW_RESOURCE.has(targetLang) };
     corrPayload = await withNastaliq(corrPayload, targetLang, targetName2, cacheKey);
+
+    // If withNastaliq just generated a Latin transliteration that wasn't stored yet,
+    // persist it back to the corrections store so the next request doesn't need Gemini.
+    const hadLatinTranslit = userCorrection.transliteration && isLatinOnly(userCorrection.transliteration);
+    const nowHasLatinTranslit = corrPayload.transliteration && isLatinOnly(corrPayload.transliteration);
+    if (!hadLatinTranslit && nowHasLatinTranslit) {
+      const [csrc, ctgt, ...crest] = cacheKey.split('|');
+      corrections.add(csrc, ctgt, crest.join('|'), corrPayload.translation, corrPayload.transliteration)
+        .catch(e => console.error('[translate] roman persist error:', e.message));
+    }
+
     return res.json(corrPayload);
   }
 
