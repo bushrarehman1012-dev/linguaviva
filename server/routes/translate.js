@@ -300,15 +300,41 @@ router.post('/', async (req, res) => {
   // Summary of what we know for the composition prompt
   const knownCount  = allAnchors.length;
   const coverage100 = Math.min(Math.round(wordCoverage * 100), 100);
+  const fullyCovered = wordCoverage >= 1 && wordHitsList.length >= 1;
 
   const prompt = useComposition
-    ? `You are a ${targetName} linguistic expert helping preserve an endangered language.
+    ? fullyCovered
+      // PRIORITY 2d: every token is covered — Gemini's only job is to arrange the
+      // anchor translations into correct target-language word order.
+      // We forbid it from using its own vocabulary to prevent duplication like
+      // "awaji Awaje" when both an anchor and Gemini's training data supply the same word.
+      ? `You are a ${targetName} word-order expert helping preserve an endangered language.
 
 Language notes: ${langNote}
 
-We know ${knownCount} word(s) in this sentence (${coverage100}% coverage). Use the verified anchors below as locked building blocks and fill in the rest using your knowledge of ${targetName} grammar, morphology, and word order to produce the most accurate possible translation of the full sentence.
+Every word in the input sentence already has a verified translation below. Your ONLY task is to arrange these translations into the correct ${targetName} word order (${targetName} uses SOV — Subject-Object-Verb). Do NOT add, change, or remove any word. Do NOT use your own ${targetName} vocabulary — use ONLY the translations listed here.
 
-VERIFIED WORD/PHRASE ANCHORS — use these exact forms, do not alter them:
+VERIFIED TRANSLATIONS (rearrange these, do not alter them):
+${allAnchors.join('\n')}
+
+Sentence for reference: "${text.trim()}"
+
+Instructions:
+1. Determine the grammatical role (subject, object, verb/predicate) of each anchor.
+2. Arrange them in correct ${targetName} SOV order.
+3. Use ONLY the words in the anchor list — no additions, no synonyms.
+4. ${scriptNote}
+
+Return ONLY valid JSON (no markdown): {"translation":"<native/Nastaliq script>","transliteration":"<Latin romanization>"}`
+
+      // Partial coverage — fill in the gaps
+      : `You are a ${targetName} linguistic expert helping preserve an endangered language.
+
+Language notes: ${langNote}
+
+We know ${knownCount} word(s) in this sentence (${coverage100}% coverage). Use the verified anchors below as locked building blocks and fill in the rest using your knowledge of ${targetName} grammar, morphology, and word order.
+
+VERIFIED WORD/PHRASE ANCHORS — use these exact forms. Do NOT use synonyms or alternative forms for any anchored word, even if you know one. If an anchor is a phrase (multiple English words), it has a single ${targetName} translation that covers the whole phrase — do not translate any word within it separately.
 ${allAnchors.join('\n')}
 ${dictContext}${masterContext}${wordContext}
 Sentence to translate: "${text.trim()}"
@@ -316,7 +342,7 @@ Sentence to translate: "${text.trim()}"
 Instructions:
 1. Identify the sentence structure (subject, verb, object, question type, tense).
 2. Place anchored words in the correct ${targetName} positions (SOV order).
-3. For any word not in the anchors, use your best linguistic knowledge of ${targetName}.
+3. For any word NOT covered by the anchors, use your best linguistic knowledge of ${targetName}.
 4. Produce a complete, natural-sounding sentence — not just a word list.
 5. Never refuse. If uncertain, give your best attempt.
 6. ${scriptNote}
