@@ -2,6 +2,7 @@
 // Reads are synchronous (fast, from memory).
 // Writes are async (durable, go to Supabase then update memory).
 // Call initialize() once at server startup before accepting requests.
+// DB updated 2026-07-04: 36 bsk_dictionary entries replaced with native Hussainabad words (Wiktionary/PDF).
 
 const supabase = require('./supabase');
 
