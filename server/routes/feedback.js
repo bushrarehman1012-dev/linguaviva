@@ -35,20 +35,22 @@ const STOP_WORDS = new Set([
   'i','you','he','she','we','they','this','that',
 ]);
 
-async function extractWordCorrections(sourceLang, targetLang, sourcePhrase, targetPhrase) {
+async function extractWordCorrections(sourceLang, targetLang, sourcePhrase, targetPhrase, targetRoman) {
   const srcTokens = sourcePhrase.toLowerCase()
     .replace(/[?!.,;:'"؟]/g, '')
     .split(/\s+/)
     .filter(w => w.length > 1 && !STOP_WORDS.has(w));
 
-  const tgtTokens = targetPhrase.trim().split(/\s+/).filter(w => w.length > 0);
+  const tgtTokens  = targetPhrase.trim().split(/\s+/).filter(w => w.length > 0);
+  const romTokens  = (targetRoman || '').trim().split(/\s+/).filter(w => w.length > 0);
 
   if (srcTokens.length !== tgtTokens.length || srcTokens.length === 0) return;
 
   for (let i = 0; i < srcTokens.length; i++) {
     const existing = correctionsStore.get(sourceLang, targetLang, srcTokens[i]);
     if (!existing) {
-      await correctionsStore.add(sourceLang, targetLang, srcTokens[i], tgtTokens[i]);
+      const wordRoman = romTokens.length === tgtTokens.length ? romTokens[i] : '';
+      await correctionsStore.add(sourceLang, targetLang, srcTokens[i], tgtTokens[i], wordRoman);
     }
   }
 }
@@ -84,29 +86,36 @@ function extractPhrases(text) {
 
 // POST /api/feedback
 router.post('/', async (req, res) => {
-  const { text, sourceLang, targetLang, translation, transliteration, verdict, correction } = req.body;
+  const { text, sourceLang, targetLang, translation, transliteration, verdict, correction, correctionRoman } = req.body;
   if (!text || !sourceLang || !targetLang || !verdict) {
     return res.status(400).json({ error: 'text, sourceLang, targetLang, verdict required' });
   }
 
   if (verdict === 'bad') {
     const corrected = correction?.trim();
+    const corrRoman = correctionRoman?.trim() || '';
 
     if (corrected) {
-      // For Nastaliq languages: if the user typed Latin romanization, generate and store
-      // the Arabic script version so it's ready without a Gemini call at serve time.
-      let storedCorrection = corrected;
-      if (NASTALIQ_LANGS.has(targetLang) && isLatinOnly(corrected)) {
-        const LANG_NAMES = { bsk:'Burushaski', scl:'Shina', hno:'Hindko', mvy:'Indus Kohistani', khw:'Khowar', trw:'Torwali' };
-        const nastaliq = await toNastaliq(corrected, LANG_NAMES[targetLang] || targetLang);
-        if (nastaliq) storedCorrection = nastaliq;
+      const LANG_NAMES = { bsk:'Burushaski', scl:'Shina', hno:'Hindko', mvy:'Indus Kohistani', khw:'Khowar', trw:'Torwali' };
+      let storedNastaliq = corrected;
+      let storedRoman    = corrRoman;
+
+      if (NASTALIQ_LANGS.has(targetLang)) {
+        if (isLatinOnly(corrected)) {
+          // User typed only Latin — convert to Nastaliq; preserve their Latin as the roman form
+          storedRoman = storedRoman || corrected;
+          const nastaliq = await toNastaliq(corrected, LANG_NAMES[targetLang] || targetLang);
+          if (nastaliq) storedNastaliq = nastaliq;
+        }
+        // If user provided Nastaliq + roman, both are already set correctly.
+        // If user provided only Nastaliq and no roman, storedRoman stays empty — that's fine.
       }
 
-      // Store the correction (Nastaliq if converted, Latin if conversion failed/skipped)
-      await correctionsStore.add(sourceLang, targetLang, text, storedCorrection);
+      // Store correction with both script forms
+      await correctionsStore.add(sourceLang, targetLang, text, storedNastaliq, storedRoman);
 
       if (text.trim().split(/\s+/).length > 1) {
-        await extractWordCorrections(sourceLang, targetLang, text, storedCorrection);
+        await extractWordCorrections(sourceLang, targetLang, text, storedNastaliq, storedRoman);
       }
 
       // Bust stale AI cache

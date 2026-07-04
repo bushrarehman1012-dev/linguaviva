@@ -96,9 +96,12 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
 .feedback-btn.good { background: #D1FAE5; border-color: #6EE7B7; color: #065F46; }
 .feedback-btn.bad  { background: #FEE2E2; border-color: #FCA5A5; color: #991B1B; }
 .correction-box { margin-top: 10px; display: none; }
-.correction-box textarea { width: 100%; border: 1px solid #E5E7EB; border-radius: 10px; padding: 10px; font-size: 14px; font-family: inherit; outline: none; resize: vertical; min-height: 60px; }
-.correction-box textarea:focus { border-color: #4F46E5; }
-.correction-box button { margin-top: 8px; padding: 7px 18px; background: #4F46E5; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.correction-fields { display: flex; flex-direction: column; gap: 6px; }
+.correction-field-label { font-size: 12px; font-weight: 600; color: #6B7280; margin-bottom: 1px; }
+.correction-field-input { width: 100%; border: 1px solid #E5E7EB; border-radius: 10px; padding: 9px 12px; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box; }
+.correction-field-input:focus { border-color: #4F46E5; }
+.correction-field-input.rtl-input { direction: rtl; text-align: right; font-size: 15px; }
+.correction-box button { margin-top: 10px; padding: 7px 18px; background: #4F46E5; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .correction-box .thanks { font-size: 13px; color: #059669; font-weight: 600; }
 </style>
 </head>
@@ -325,7 +328,8 @@ const LANGUAGES = [
   { code:'kls', name:'Kalasha',    nativeName:'کالاشہ',   region:'Kalash Valleys, Chitral — KPK',    speakerCount:5000,     status:'critically_endangered',isRTL:false },
 ];
 
-const LOW_RESOURCE = new Set(['bsk','scl','mvy','khw','bft','wbl','trw','kls']);
+const LOW_RESOURCE        = new Set(['bsk','scl','mvy','khw','bft','wbl','trw','kls']);
+const NASTALIQ_LANGS_CLIENT = new Set(['bsk','scl','hno','mvy','khw','trw']);
 
 // Consolidated category groups — value maps to one or more DB category names (comma-separated)
 const PHRASE_CATS = [
@@ -448,8 +452,17 @@ async function doTranslate() {
         <button class="feedback-btn" id="fb-bad" onclick="sendFeedback('bad')">👎 ${hasTranslation ? 'No' : 'Add correction'}</button>
       </div>
       <div class="correction-box" id="correction-box">
-        <textarea id="correction-text" placeholder="Enter the correct translation here…"></textarea>
-        <button onclick="submitCorrection()">Submit</button>
+        <div class="correction-fields">
+          <div class="correction-field-label">Latin romanization</div>
+          <input type="text" id="correction-roman" class="correction-field-input"
+                 placeholder="e.g. bepayan, sil, ju gor…" autocomplete="off" />
+          ${NASTALIQ_LANGS_CLIENT.has(targetLang) ? `
+          <div class="correction-field-label" style="margin-top:4px">Nastaliq script <span style="font-weight:400;color:#9CA3AF">(optional — will be generated from romanization if left blank)</span></div>
+          <input type="text" id="correction-nastaliq" class="correction-field-input rtl-input"
+                 placeholder="e.g. بیپایان" autocomplete="off" />
+          ` : ''}
+        </div>
+        <button onclick="submitCorrection()">Submit correction</button>
       </div>
       <div id="feedback-thanks"></div>
     `;
@@ -673,9 +686,14 @@ async function sendFeedback(verdict) {
 
 async function submitCorrection() {
   if (!lastFeedbackPayload) return;
-  const correction = (document.getElementById('correction-text')?.value || '').trim();
+  const roman    = (document.getElementById('correction-roman')?.value    || '').trim();
+  const nastaliq = (document.getElementById('correction-nastaliq')?.value || '').trim();
+  // Need at least one field filled
+  if (!roman && !nastaliq) return;
+  // Use Nastaliq as primary if provided, otherwise send Latin (backend will convert)
+  const correction = nastaliq || roman;
   const thanks = document.getElementById('feedback-thanks');
-  await postFeedback({ ...lastFeedbackPayload, verdict: 'bad', correction });
+  await postFeedback({ ...lastFeedbackPayload, verdict: 'bad', correction, correctionRoman: roman });
   const corrBox = document.getElementById('correction-box');
   if (corrBox) corrBox.style.display = 'none';
   if (thanks) thanks.innerHTML = '<div class="correction-box"><span class="thanks">Thank you — your correction has been saved and will improve future translations!</span></div>';

@@ -150,8 +150,10 @@ router.post('/', async (req, res) => {
   const userCorrection = corrections.getByKey(cacheKey);
   if (userCorrection) {
     const targetName2 = LANGUAGE_NAMES[targetLang] || targetLang;
-    // Pass cacheKey so the Nastaliq result is cached — Gemini only called once per correction
-    const corrPayload = await withNastaliq(userCorrection, targetLang, targetName2, cacheKey);
+    // getByKey now returns { translation, transliteration, source } — transliteration is the roman form.
+    // withNastaliq converts to Nastaliq script if translation is still Latin.
+    let corrPayload = { ...userCorrection, lowResource: LOW_RESOURCE.has(targetLang) };
+    corrPayload = await withNastaliq(corrPayload, targetLang, targetName2, cacheKey);
     return res.json(corrPayload);
   }
 
@@ -256,11 +258,12 @@ router.post('/', async (req, res) => {
   // order and return immediately — no Gemini needed. Works for any separator (none, single
   // space, double space, punctuation) because matching is token-level.
   if (phrasesFullyCover && corrPhraseHits.length > 1) {
-    const ordered  = [...corrPhraseHits].sort((a, b) => a.start - b.start);
-    const stitched = ordered.map(h => h.translation).join(' ');
+    const ordered           = [...corrPhraseHits].sort((a, b) => a.start - b.start);
+    const stitchedText      = ordered.map(h => h.translation).join(' ');
+    const stitchedRoman     = ordered.map(h => h.roman || h.translation).join(' ');
     const combined = {
-      translation:     stitched,
-      transliteration: stitched,
+      translation:     stitchedText,
+      transliteration: stitchedRoman,
       source:          'correction',
       lowResource:     isLowResource,
     };
@@ -271,8 +274,8 @@ router.post('/', async (req, res) => {
 
   const corrWordContext = (corrWordHits.length || corrPhraseHits.length)
     ? `\nCOMMUNITY-VERIFIED WORDS/PHRASES (use these exact forms):\n` +
-      [...corrWordHits.map(h => `"${h.word}" = "${h.translation}"`),
-       ...corrPhraseHits.map(h => `"${h.word}" = "${h.translation}"`)].join('\n') + '\n'
+      [...corrWordHits.map(h => `"${h.word}" = "${h.roman || h.translation}"`),
+       ...corrPhraseHits.map(h => `"${h.word}" = "${h.roman || h.translation}"`)].join('\n') + '\n'
     : '';
 
   // Legacy wordlist + master table context (still useful for non-BSK languages)
@@ -285,11 +288,12 @@ router.post('/', async (req, res) => {
   // Gemini only fills in what the DB can't cover.
   const useComposition = isLowResource && (wordHitsList.length >= 1 || corrWordHits.length >= 1 || corrPhraseHits.length >= 1);
 
-  // All known anchors combined (lexicon word hits + community corrections)
+  // All known anchors combined — always use the Latin roman form for anchors so Gemini
+  // works with readable text, not Nastaliq. Gemini converts to Nastaliq at response time.
   const allAnchors = [
     ...wordHitsList.map(h => `"${h.word}" → "${h.roman}"`),
-    ...corrWordHits.map(h => `"${h.word}" → "${h.translation}"`),
-    ...corrPhraseHits.map(h => `"${h.word}" → "${h.translation}"`),
+    ...corrWordHits.map(h => `"${h.word}" → "${h.roman || h.translation}"`),
+    ...corrPhraseHits.map(h => `"${h.word}" → "${h.roman || h.translation}"`),
   ];
 
   const needsNastaliq = NASTALIQ_LANGS.has(targetLang);
