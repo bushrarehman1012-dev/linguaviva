@@ -58,33 +58,11 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
 .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #C7D2FE; border-top-color: #4F46E5; border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Languages */
+/* Contribute / shared */
 .section-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
 .section-sub { font-size: 13px; color: #6B7280; margin-bottom: 14px; }
-.search-box { width: 100%; padding: 10px 14px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 14px; outline: none; margin-bottom: 14px; }
-.search-box:focus { border-color: #4F46E5; }
-.lang-card { background: #fff; border-radius: 12px; padding: 14px; border: 1px solid #E5E7EB; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
-.lang-card:hover { border-color: #4F46E5; }
-.lang-name { font-size: 17px; font-weight: 700; }
-.lang-native { font-size: 13px; color: #6B7280; margin-top: 2px; }
-.lang-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-.lang-region { font-size: 12px; color: #9CA3AF; }
-.status-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
-.status-vulnerable { background: #FEF3C7; color: #92400E; }
-.status-endangered { background: #FEE2E2; color: #991B1B; }
-.status-critically_endangered { background: #EDE9FE; color: #5B21B6; }
-
-/* Phrases */
 .lang-select-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .lang-select-row label { font-size: 13px; font-weight: 600; color: #6B7280; white-space: nowrap; }
-.phrase-card { background: #fff; border-radius: 12px; padding: 14px; border: 1px solid #F3F4F6; margin-bottom: 8px; }
-.phrase-en { font-size: 12px; color: #9CA3AF; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-.phrase-tr { font-size: 20px; font-weight: 600; color: #111827; line-height: 1.4; }
-.phrase-tr.rtl { text-align: right; direction: rtl; }
-.phrase-lit { font-size: 13px; color: #9CA3AF; font-style: italic; margin-top: 4px; }
-.phrase-note { font-size: 12px; color: #92400E; margin-top: 6px; background: #FFFBEB; padding: 6px 8px; border-radius: 6px; }
-.phrase-speak { float: right; margin-top: -2px; background: none; border: none; cursor: pointer; font-size: 16px; opacity: 0.6; }
-.phrase-speak:hover { opacity: 1; }
 .loading-msg { text-align: center; padding: 40px; color: #6B7280; }
 .no-speech { background: #FEF3C7; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #92400E; margin-bottom: 12px; display: none; }
 
@@ -116,8 +94,6 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
 
 <div class="nav">
   <button class="active" onclick="showPage('translate', this)">🌐 Translate</button>
-  <button onclick="showPage('languages', this)">📖 Languages</button>
-  <button onclick="showPage('phrases', this)">💬 Phrases</button>
   <button onclick="showPage('contribute', this); initContribute()">✍️ Contribute</button>
 </div>
 
@@ -173,14 +149,6 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
   <div class="output" id="output-box">
     <div class="placeholder">Translation will appear here</div>
   </div>
-</div>
-
-<!-- LANGUAGES PAGE -->
-<div class="page" id="page-languages">
-  <div class="section-title">Languages</div>
-  <div class="section-sub">10 regional languages of KPK & Gilgit-Baltistan</div>
-  <input class="search-box" id="lang-search" placeholder="Search languages…" oninput="renderLanguages()" />
-  <div id="lang-list"></div>
 </div>
 
 <!-- CONTRIBUTE PAGE -->
@@ -291,27 +259,6 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
   </div>
 </div>
 
-<!-- PHRASES PAGE -->
-<div class="page" id="page-phrases">
-  <div class="section-title">Phrases</div>
-  <div class="lang-select-row">
-    <label>Language:</label>
-    <select id="phrases-lang" onchange="loadPhrases()">
-      <option value="ps">Pashto</option>
-      <option value="bsk">Burushaski</option>
-      <option value="scl">Shina</option>
-      <option value="hno">Hindko</option>
-      <option value="mvy">Kohistani</option>
-      <option value="khw">Khowar</option>
-      <option value="bft">Balti</option>
-      <option value="wbl">Wakhi</option>
-      <option value="trw">Torwali</option>
-      <option value="kls">Kalasha</option>
-    </select>
-  </div>
-  <select class="cat-select" id="cat-select" onchange="onPhrasesCatChange(this.value)"></select>
-  <div id="phrases-list"></div>
-</div>
 
 <script>
 // ─── Data ───────────────────────────────────────────────────────────────────
@@ -330,20 +277,6 @@ const LANGUAGES = [
 
 const LOW_RESOURCE        = new Set(['bsk','scl','mvy','khw','bft','wbl','trw','kls']);
 const NASTALIQ_LANGS_CLIENT = new Set(['bsk','scl','hno','mvy','khw','trw']);
-
-// Consolidated category groups — value maps to one or more DB category names (comma-separated)
-const PHRASE_CATS = [
-  { value: 'greetings',                                                    label: 'Greetings' },
-  { value: 'travel',                                                       label: 'Travel & Transport' },
-  { value: 'food',                                                         label: 'Food & Drink' },
-  { value: 'emergency',                                                    label: 'Emergency & Health' },
-  { value: 'nature',                                                       label: 'Nature & Outdoors' },
-  { value: 'trekking',                                                     label: 'Trekking & Mountains' },
-  { value: 'family',                                                       label: 'Family & People' },
-  { value: 'culture,religion,places',                                      label: 'Culture & Religion' },
-  { value: 'numbers,time',                                                 label: 'Numbers & Time' },
-  { value: 'daily,work,objects',                                           label: 'Daily Life' },
-];
 
 const CONTRIB_CATS = [
   { value: 'all',                                                          label: 'All Categories' },
@@ -372,8 +305,6 @@ function showPage(name, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   btn.classList.add('active');
-  if (name === 'languages') renderLanguages();
-  if (name === 'phrases') initPhrases();
 }
 
 // ─── Translate ───────────────────────────────────────────────────────────────
@@ -575,89 +506,6 @@ function speakText(text) {
 
 function speakTranslation() {
   speakText(lastTranslation);
-}
-
-function speakPhrase(text) {
-  speakText(text);
-}
-
-// ─── Languages Page ──────────────────────────────────────────────────────────
-function formatSpeakers(n) {
-  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M speakers';
-  if (n >= 1e3) return Math.round(n/1e3) + 'K speakers';
-  return n + ' speakers';
-}
-
-function renderLanguages() {
-  const q = (document.getElementById('lang-search')?.value || '').toLowerCase();
-  const filtered = LANGUAGES.filter(l =>
-    l.name.toLowerCase().includes(q) || l.region.toLowerCase().includes(q) || l.nativeName.includes(q)
-  );
-  document.getElementById('lang-list').innerHTML = filtered.map(l => `
-    <div class="lang-card" onclick="goTranslate('${l.code}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="lang-name">${l.name}</div>
-          <div class="lang-native">${l.nativeName}</div>
-        </div>
-        <span class="status-badge status-${l.status}">${l.status.replace(/_/g,' ')}</span>
-      </div>
-      <div class="lang-meta">
-        <span class="lang-region">${l.region}</span>
-        <span style="font-size:12px;color:#9CA3AF">${formatSpeakers(l.speakerCount)}</span>
-      </div>
-      ${LOW_RESOURCE.has(l.code) ? '<div style="font-size:11px;color:#9CA3AF;margin-top:6px">⚠ Low-resource — AI uses verified vocabulary anchors</div>' : ''}
-    </div>
-  `).join('');
-}
-
-function goTranslate(code) {
-  document.getElementById('target-lang').value = code;
-  showPage('translate', document.querySelector('.nav button'));
-}
-
-// ─── Phrases Page ────────────────────────────────────────────────────────────
-function initPhrases() {
-  const sel = document.getElementById('cat-select');
-  if (!sel.options.length) {
-    sel.innerHTML = PHRASE_CATS.map(c =>
-      `<option value="${c.value}"${c.value === activeCategory ? ' selected' : ''}>${c.label}</option>`
-    ).join('');
-  }
-  loadPhrases();
-}
-
-function onPhrasesCatChange(val) {
-  activeCategory = val;
-  loadPhrases();
-}
-
-async function loadPhrases() {
-  const langCode = document.getElementById('phrases-lang').value;
-  const lang = LANGUAGES.find(l => l.code === langCode);
-  const list = document.getElementById('phrases-list');
-  list.innerHTML = '<div class="loading-msg"><div class="spinner"></div><p style="margin-top:12px;font-size:13px">Generating with AI…</p></div>';
-
-  try {
-    const res = await fetch(`/api/phrases/${langCode}/${activeCategory}`);
-    const data = await res.json();
-    const isRTL = lang ? lang.isRTL : false;
-
-    list.innerHTML = (data.lowResource
-      ? '<div style="background:#FEF3C7;border-radius:10px;padding:10px 14px;font-size:13px;color:#92400E;margin-bottom:10px">⚠ Low-resource language — phrases use verified vocabulary anchors where possible</div>'
-      : '') +
-      data.phrases.map(p => `
-        <div class="phrase-card">
-          <button class="phrase-speak" onclick="speakText('${escHtml(p.transliteration || p.english)}')">🔊</button>
-          <div class="phrase-en">${escHtml(p.english)}</div>
-          <div class="phrase-tr ${isRTL ? 'rtl' : ''}">${escHtml(p.translation)}</div>
-          ${p.transliteration ? `<div class="phrase-lit">${escHtml(p.transliteration)}</div>` : ''}
-          ${p.note ? `<div class="phrase-note">💡 ${escHtml(p.note)}</div>` : ''}
-        </div>
-      `).join('');
-  } catch {
-    list.innerHTML = '<div class="loading-msg" style="color:#DC2626">Failed to load phrases. Is the server running?</div>';
-  }
 }
 
 // ─── Feedback ────────────────────────────────────────────────────────────────
