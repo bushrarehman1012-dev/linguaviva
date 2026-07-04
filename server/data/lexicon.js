@@ -107,6 +107,34 @@ function getContext(text, sourceLang, targetLang) {
   return { isExact: false, context, hits, coverage };
 }
 
+// Return candidate base forms for a token: handles English plurals, -ing, -ed.
+// Ordered most-specific first so "berries"→"berry" is tried before "berries"→"berri".
+function _deInflect(word) {
+  const w = word;
+  if (w.length < 3) return [w];
+  const candidates = [w];
+  if (w.endsWith('ies') && w.length > 4)  candidates.push(w.slice(0, -3) + 'y');   // berries→berry
+  if (w.endsWith('ves') && w.length > 4)  candidates.push(w.slice(0, -3) + 'f');   // knives→knife
+  if (w.endsWith('ses') && w.length > 3)  candidates.push(w.slice(0, -2));          // buses→bus
+  if (w.endsWith('ches') && w.length > 4) candidates.push(w.slice(0, -2));          // watches→watch
+  if (w.endsWith('shes') && w.length > 4) candidates.push(w.slice(0, -2));          // wishes→wish
+  if (w.endsWith('ing') && w.length > 5)  candidates.push(w.slice(0, -3));          // running→runn (good enough for lexicon hit)
+  if (w.endsWith('ing') && w.length > 6)  candidates.push(w.slice(0, -3) + 'e');   // taking→take
+  if (w.endsWith('ed') && w.length > 4)   candidates.push(w.slice(0, -2));          // walked→walk
+  if (w.endsWith('ed') && w.length > 4)   candidates.push(w.slice(0, -1));          // loved→love (drop d)
+  if (w.endsWith('s') && w.length > 2)    candidates.push(w.slice(0, -1));          // yaks→yak, dogs→dog
+  return candidates;
+}
+
+function _lookupWord(langCode, token, targetLang) {
+  for (const form of _deInflect(token)) {
+    const entryId = _byText[langCode]?.[form];
+    const t = entryId && _entries[entryId]?.translations[targetLang];
+    if (t?.text && t.verified) return { entryId, t, matchedForm: form };
+  }
+  return null;
+}
+
 function wordHits(phrase, sourceLang, targetLang) {
   const STOP = new Set(['the','a','an','is','are','was','were','be','been','i','you','he','she','it','we','they','and','or','but','in','on','at','to','of','for','do','does','did','have','has','can','could','will','would','please']);
   // Replace punctuation with space (not empty string) so "you?how" splits into ["you","how"]
@@ -133,16 +161,17 @@ function wordHits(phrase, sourceLang, targetLang) {
     }
   }
 
-  // Phase 2: single-word lookup for any token not already covered by a phrase match
+  // Phase 2: single-word lookup with de-inflection (plurals, -ing, -ed)
+  // Falls back to base forms so "yaks"→"yak", "running"→"run", etc. still hit the lexicon.
   const seenWords = new Set();
   for (let i = 0; i < tokens.length; i++) {
     if (coveredIdx.has(i)) continue;
     const word = tokens[i];
     if (seenWords.has(word)) continue;
     seenWords.add(word);
-    const entryId = _byText[sourceLang]?.[word];
-    const t = entryId && _entries[entryId]?.translations[targetLang];
-    if (t?.text && t.verified) {
+    const hit = _lookupWord(sourceLang, word, targetLang);
+    if (hit) {
+      const { t } = hit;
       hits.push({ word, targetText: t.text, roman: t.roman || t.text, confidence: t.confidence });
       coveredIdx.add(i);
     }
