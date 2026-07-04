@@ -75,23 +75,62 @@ async function romanToNastaliq(model, roman, langName) {
   } catch { return null; }
 }
 
-// Apply Nastaliq conversion to any payload whose translation is still Latin,
-// for languages that should display in Arabic script. Updates the cache so the
-// converted version is served on subsequent hits without another Gemini call.
+async function nastaliqToRoman(model, nastaliq, langName) {
+  try {
+    const result = await model.generateContent(
+      `You are a ${langName} language expert. Romanize this ${langName} text from Nastaliq script into clear Latin transliteration.\n` +
+      `Use lowercase Latin letters. Preserve word boundaries and punctuation.\n` +
+      `Nastaliq: "${nastaliq}"\n` +
+      `Return ONLY valid JSON: {"roman":"<Latin romanization>"}\nNo explanation, no markdown.`
+    );
+    const raw = result.response.text().trim();
+    let p = null;
+    try { p = JSON.parse(raw); } catch {}
+    if (!p) { const m = raw.match(/\{[\s\S]*\}/); if (m) try { p = JSON.parse(m[0]); } catch {} }
+    const r = (p?.roman || '').trim();
+    return (r && isLatinOnly(r)) ? r : null;
+  } catch { return null; }
+}
+
+// Ensure every payload for Nastaliq-script languages has BOTH scripts:
+//   • translation   = Nastaliq (Arabic script)
+//   • transliteration = Latin romanization
+// Two cases handled:
+//   1. translation is Latin  → convert to Nastaliq; keep Latin as transliteration
+//   2. translation is Nastaliq but transliteration is missing/Nastaliq → generate Latin from Nastaliq
+// Result is cached so Gemini is called at most once per unique phrase.
 async function withNastaliq(payload, targetLang, targetName, cKey) {
-  if (!NASTALIQ_LANGS.has(targetLang) || !payload.translation || !isLatinOnly(payload.translation)) {
-    return payload;
-  }
+  if (!NASTALIQ_LANGS.has(targetLang) || !payload.translation) return payload;
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return payload;
+
+  const translationIsLatin = isLatinOnly(payload.translation);
+  const hasLatinTranslit   = payload.transliteration && isLatinOnly(payload.transliteration);
+
+  // Nothing to do: Nastaliq translation AND Latin transliteration both present
+  if (!translationIsLatin && hasLatinTranslit) return payload;
+
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const nastaliq = await romanToNastaliq(model, payload.translation, targetName);
-    if (nastaliq) {
-      const updated = { ...payload, translation: nastaliq, transliteration: payload.transliteration || payload.translation };
-      if (cKey) cache.set(cKey, updated);
-      return updated;
+
+    if (translationIsLatin) {
+      // Case 1: Latin → Nastaliq
+      const nastaliq = await romanToNastaliq(model, payload.translation, targetName);
+      if (nastaliq) {
+        const updated = { ...payload, translation: nastaliq, transliteration: payload.transliteration || payload.translation };
+        if (cKey) cache.set(cKey, updated);
+        return updated;
+      }
+    } else {
+      // Case 2: Nastaliq present, Latin transliteration missing — generate it
+      const roman = await nastaliqToRoman(model, payload.translation, targetName);
+      if (roman) {
+        const updated = { ...payload, transliteration: roman };
+        if (cKey) cache.set(cKey, updated);
+        return updated;
+      }
     }
   } catch {}
   return payload;
