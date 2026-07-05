@@ -105,7 +105,7 @@ textarea { width: 100%; border: none; outline: none; font-size: 17px; resize: no
 
   <div class="card">
     <div class="lang-row">
-      <select id="source-lang" onchange="clearOutput()">
+      <select id="source-lang" onchange="clearOutput(); updateMicVisibility()">
         <option value="en">English</option>
         <option value="ur">Urdu — اردو</option>
         <option value="ps">Pashto</option>
@@ -434,7 +434,28 @@ async function validateTranslation(originalText, targetLang) {
   }
 }
 
-// ─── Audio: Speech-to-Text Input (Task 2) ────────────────────────────────────
+// ─── Audio: Speech-to-Text Input ─────────────────────────────────────────────
+// Languages supported by the Web Speech API in Chrome/Edge (BCP-47 tags).
+// Languages NOT in this map have no browser ASR — mic button is hidden for them.
+const SPEECH_LANGS = {
+  en:  'en-US',
+  ur:  'ur-PK',
+  ps:  'ps-AF',
+};
+
+function updateMicVisibility() {
+  const src = document.getElementById('source-lang')?.value || 'en';
+  const btn = document.getElementById('mic-btn');
+  if (!btn) return;
+  if (recognition && SPEECH_LANGS[src]) {
+    btn.style.display = '';
+    btn.title = '';
+  } else if (recognition) {
+    // Language not supported by browser ASR
+    btn.style.display = 'none';
+  }
+}
+
 function setupSpeechRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
@@ -445,7 +466,7 @@ function setupSpeechRecognition() {
   recognition = new SpeechRecognition();
   recognition.continuous = false;
   recognition.interimResults = true;
-  recognition.lang = 'en-US';
+  // lang is set dynamically in toggleMic() based on current source language
 
   recognition.onresult = (e) => {
     const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
@@ -467,6 +488,8 @@ function setupSpeechRecognition() {
     document.getElementById('mic-btn').textContent = '🎤 Speak';
     if (e.error !== 'no-speech') console.warn('Speech error:', e.error);
   };
+
+  updateMicVisibility();
 }
 
 function toggleMic() {
@@ -478,6 +501,8 @@ function toggleMic() {
   if (isListening) {
     recognition.stop();
   } else {
+    const src = document.getElementById('source-lang').value;
+    recognition.lang = SPEECH_LANGS[src] || 'en-US';
     isListening = true;
     btn.classList.add('listening');
     btn.textContent = '⏹ Stop';
