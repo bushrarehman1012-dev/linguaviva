@@ -31,7 +31,7 @@ async function fetchAll(table, select) {
   return rows;
 }
 
-async function translateBatch(model, words) {
+async function translateBatch(model, words, attempt = 0) {
   const numbered = words.map((w, i) => `${i + 1}. ${w}`).join('\n');
   const prompt =
     `Translate the following English words/phrases to Urdu (Nastaliq script).\n` +
@@ -42,7 +42,6 @@ async function translateBatch(model, words) {
   try {
     const result = await model.generateContent(prompt);
     const raw = result.response.text().trim();
-    // Extract JSON array from response
     let parsed = null;
     try { parsed = JSON.parse(raw); } catch {}
     if (!parsed) {
@@ -50,12 +49,25 @@ async function translateBatch(model, words) {
       if (m) try { parsed = JSON.parse(m[0]); } catch {}
     }
     if (!Array.isArray(parsed) || parsed.length !== words.length) {
-      console.warn('  Unexpected response length or format — skipping batch');
+      console.warn('  Unexpected response format — skipping batch');
       return null;
     }
     return parsed;
   } catch (e) {
-    console.warn('  Gemini call failed:', e.message);
+    const msg = e.message || '';
+    // Retry on rate limit (429) — wait for the suggested retry delay or 65s
+    if (msg.includes('429') && attempt < 3) {
+      const retryMatch = msg.match(/retry in (\d+)/i);
+      const waitSec = retryMatch ? parseInt(retryMatch[1]) + 5 : 65;
+      console.warn(`\n  Rate limited — waiting ${waitSec}s before retry ${attempt + 1}/3...`);
+      await sleep(waitSec * 1000);
+      return translateBatch(model, words, attempt + 1);
+    }
+    if (msg.includes('429')) {
+      console.error('\n  Daily quota exhausted — run the script again tomorrow to continue.');
+      process.exit(1);
+    }
+    console.warn('  Gemini call failed:', msg.slice(0, 120));
     return null;
   }
 }
