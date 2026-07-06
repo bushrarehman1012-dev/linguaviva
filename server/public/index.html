@@ -365,8 +365,8 @@ async function doTranslate() {
 
     box.innerHTML = `
       ${hasTranslation
-        ? `<div class="output-text ${isRTL ? 'rtl' : ''}">${escHtml(nativeScript)}</div>
-           ${showBoth ? `<div style="font-size:15px;color:#6B7280;margin-top:6px;font-style:italic">${escHtml(romanization)}</div>` : ''}`
+        ? `<div class="output-text">${escHtml(romanization || nativeScript)}</div>
+           ${showBoth && romanization ? `<div class="output-text rtl" style="font-size:15px;font-weight:400;color:#6B7280;margin-top:6px">${escHtml(nativeScript)}</div>` : ''}`
         : `<div style="color:#92400E;font-size:15px;font-weight:600;padding:8px 0">
              We don't have a translation yet — be the first to contribute one below!
            </div>`}
